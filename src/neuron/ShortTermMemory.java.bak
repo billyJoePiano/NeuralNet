@@ -1,0 +1,111 @@
+package neuron;
+
+import net.*;
+
+import java.util.*;
+
+public class ShortTermMemory extends CachingNeuron {
+    /**
+     * number of memories to include in the calculation
+     */
+    public final int length;
+
+    /**
+     * number of rounds (including the current round) before the current signal input is
+     * included in the calculation
+     */
+    public final int delay;
+
+    private final double[] memory; //rotating array... less memory overhead than a linked list
+    int index = 0;
+    int size = 0;
+
+    //private final LinkedList<Short> memory = new LinkedList<>();
+
+    public ShortTermMemory(NeuralNet net, SignalProvider input, int length) {
+        this(net, input, 1, length);
+    }
+
+    public ShortTermMemory(NeuralNet net, SignalProvider input, int delay, int length) throws IllegalArgumentException {
+        super(net, List.of(input));
+
+        net.registerRequiredCalculation(this);
+
+        if (length < 1) throw new IllegalArgumentException("ShortTermMemory length must be 1 or greater");
+        if (delay < 0) throw new IllegalArgumentException("ShortTermMemory delay must be 0 or greater");
+        if (delay + length < 2) throw new IllegalArgumentException(
+                  "ShortTermMemory delay + length must be 2 or greater, "
+                + "otherwise it is just a pass-through for the current input value");
+
+        this.delay = delay;
+        this.length = length;
+        this.memory = new double[delay + length];
+    }
+
+
+    @Override
+    public int getMinInputs() {
+        return 1;
+    }
+
+    @Override
+    public int getMaxInputs() {
+        return 1;
+    }
+
+    @Override
+    protected short calcOutput(List<SignalProvider> inputs) {
+        this.memory[this.index] = inputs.get(0).getOutput();
+
+        if (this.size != memory.length) {
+            this.size++;
+        }
+
+
+        double sum = 0;
+        double weightSum = 0;
+        int weight = this.length + 1;
+
+        int i;
+        boolean first;
+        int end = this.size == this.memory.length ? this.index : this.memory.length - 1;
+
+        if (this.delay == 0) {
+            i = this.index;
+            first = true;
+
+        } else {
+            i = this.index - this.delay;
+            if (i < 0) {
+                i += this.memory.length;
+            }
+            first = false;
+        }
+
+        while (i != end || first != (first = false)) {
+            sum += this.memory[i] * weight;
+            weightSum += weight; // TODO calculate weightSum using a single polynomial equation instead
+            weight--;
+
+            if (i != 0) i--;
+            else i = this.memory.length - 1;
+        }
+
+        if (++this.index == this.memory.length) {
+            this.index = 0;
+        }
+
+        if (weightSum == 0) return 0;
+        sum = Math.round(sum / weightSum);
+
+        if (sum >= Short.MAX_VALUE) return Short.MAX_VALUE;
+        else if (sum <= Short.MIN_VALUE) return Short.MIN_VALUE;
+        else return (short)sum;
+    }
+
+    @Override
+    public void resetNet() {
+        this.size = 0;
+        super.resetNet();
+    }
+}
