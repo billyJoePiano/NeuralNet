@@ -1,6 +1,6 @@
 package game2048;
 
-import net.*;
+import neuralNet.network.*;
 
 import java.io.*;
 import java.util.concurrent.*;

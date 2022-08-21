@@ -1,12 +1,6 @@
 package game2048;
 
-import net.*;
-import neuron.*;
-
-import java.util.*;
-import java.util.function.*;
-
-public class BoardNet implements NeuralNet<Board, Board, BoardNet> {
+public class BoardNet { /* extends NeuralNet<Board, Board, BoardNet> {
     private Board board;
 
     private SignalProvider up;
@@ -109,7 +103,7 @@ public class BoardNet implements NeuralNet<Board, Board, BoardNet> {
         this.left.clearCache();
         this.right.clearCache();
 
-         */
+         */ /*
 
         List<Decision> decisions = new ArrayList<>();
 
@@ -272,4 +266,5 @@ public class BoardNet implements NeuralNet<Board, Board, BoardNet> {
             return this.rand < other.rand ? -1 : 1;
         }
     }
+    */
 }

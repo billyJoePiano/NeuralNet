@@ -42,6 +42,12 @@
             <version>${junit.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>net.openhft</groupId>
+            <artifactId>affinity</artifactId>
+            <version>3.21ea83</version>
+        </dependency>
+
     </dependencies>
 
     <build>
