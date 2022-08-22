@@ -2,13 +2,14 @@ package neuralNet.network;
 
 import neuralNet.neuron.*;
 
-public interface DecisionNode<C extends DecisionConsumer<C>,
-                                D extends DecisionNode<C, D, N>,
-                                N extends NeuralNet<?, C, N>>
-        extends SignalConsumer, Comparable<DecisionNode<C, ?, ?>> {
+public interface DecisionNode<P extends DecisionProvider<?, P, C>,
+                                //N extends DecisionNode<P, N, C>,
+                                C extends DecisionConsumer<?, C, ?>>
+
+        extends SignalConsumer, Comparable<DecisionNode<?, C>> {
 
 
-    public N getNeuralNet();
+    public P getDecisionProvider();
 
     public int getDecisionId();
     default public short getWeight() {
@@ -26,7 +27,7 @@ public interface DecisionNode<C extends DecisionConsumer<C>,
     }
 
     @Override
-    default public int compareTo(DecisionNode<C, ?, ?> other) {
+    default public int compareTo(DecisionNode<?, C> other) {
         if (other == null) return -1;
         if (other == this) return 0;
 
@@ -42,13 +43,13 @@ public interface DecisionNode<C extends DecisionConsumer<C>,
         // AND reproducible without needing to store the output
         int myMask =  Integer.reverse(this.hashCode())
                     ^ Integer.reverse(this.getClass().hashCode())
-                    ^ Integer.reverse(this.getNeuralNet().hashCode())
-                    ^ Integer.reverse((int)this.getNeuralNet().getRound());
+                    ^ Integer.reverse(this.getDecisionProvider().hashCode())
+                    ^ Integer.reverse((int)this.getDecisionProvider().getRound());
 
         int otherMask = Integer.reverse(other.hashCode())
                     ^ Integer.reverse(other.getClass().hashCode())
-                    ^ Integer.reverse(other.getNeuralNet().hashCode())
-                    ^ Integer.reverse((int)other.getNeuralNet().getRound());
+                    ^ Integer.reverse(other.getDecisionProvider().hashCode())
+                    ^ Integer.reverse((int)other.getDecisionProvider().getRound());
 
         return myMask < otherMask ? -1 : 1;
     }

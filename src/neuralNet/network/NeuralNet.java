@@ -4,17 +4,18 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-public abstract class NeuralNet<O extends Sensable<O>,
-                            C extends DecisionConsumer<C>,
-                            N extends NeuralNet<O, C, N>> {
+public abstract class NeuralNet<S extends Sensable<S>,
+                            N extends NeuralNet<S, N, C>,
+                            C extends DecisionConsumer<S, C, ?>>
+        implements DecisionProvider<S, N, C> {
 
     private final Set<SignalProvider> neurons = Collections.newSetFromMap(new WeakHashMap<>());
     private final Set<SignalProvider> neuronsView = Collections.unmodifiableSet(neurons);
-    private O sensedObjected;
+    private S sensedObjected;
     private long round = 0;
 
-    public abstract List<SensorNode<O, ?, N>> getSensors();
-    public abstract List<DecisionNode<C, ?, N>> getDecisionNodes();
+    public abstract List<SensorNode<S, N>> getSensors();
+    public abstract List<DecisionNode<N, C>> getDecisionNodes();
 
     protected NeuralNet() { }
 
@@ -65,7 +66,7 @@ public abstract class NeuralNet<O extends Sensable<O>,
             for (Map.Entry<SignalProvider, SignalProvider> entry : entrySetCopy) {
                 SignalProvider newProvider = entry.getValue();
                 if (this.neurons.contains(newProvider)) continue;
-                else if (newProvider instanceof SensorNode && ((SensorNode)newProvider).getNeuralNet() != this)
+                else if (newProvider instanceof SensorNode && ((SensorNode)newProvider).getDecisionProvider() != this)
                     throw new IllegalStateException();
 
                 this.neurons.add(newProvider);
@@ -119,7 +120,7 @@ public abstract class NeuralNet<O extends Sensable<O>,
     public void checkForUnaccountedNeurons() {
         Set<SignalProvider> copy = new HashSet<>(this.neurons);
         for (SignalProvider neuron : copy) {
-            if (neuron instanceof SensorNode && ((SensorNode)neuron).getNeuralNet() != this) {
+            if (neuron instanceof SensorNode && ((SensorNode)neuron).getDecisionProvider() != this) {
                 throw new IllegalStateException();
             }
 
@@ -132,7 +133,7 @@ public abstract class NeuralNet<O extends Sensable<O>,
     protected void checkForUnaccountedNeurons(SignalConsumer neuron) {
         for (SignalProvider provider : neuron.getInputs()) {
             if (this.neurons.contains(provider)) continue;
-            if (provider instanceof SensorNode && ((SensorNode)provider).getNeuralNet() != this)
+            if (provider instanceof SensorNode && ((SensorNode)provider).getDecisionProvider() != this)
                 throw new IllegalStateException();
 
             this.neurons.add(provider);
@@ -149,7 +150,7 @@ public abstract class NeuralNet<O extends Sensable<O>,
 
         for (SignalConsumer consumer : neuron.getConsumers()) {
             if (consumer instanceof DecisionNode) {
-                NeuralNet net = ((DecisionNode)consumer).getNeuralNet();
+                DecisionProvider net = ((DecisionNode)consumer).getDecisionProvider();
                 if (net != this && net != null) {
                     this.neurons.remove(neuron);
                     throw new IllegalStateException();
@@ -162,7 +163,7 @@ public abstract class NeuralNet<O extends Sensable<O>,
 
         for (SignalProvider provider: neuron.getInputs()) {
             if (provider instanceof SensorNode) {
-                NeuralNet net = ((SensorNode)provider).getNeuralNet();
+                DecisionProvider net = ((SensorNode)provider).getDecisionProvider();
                 if (net != this && net != null) {
                     this.neurons.remove(neuron);
                     throw new IllegalStateException();
@@ -190,9 +191,9 @@ public abstract class NeuralNet<O extends Sensable<O>,
     public Map<SignalProvider, SignalProvider> getSensorCloneMap(N clonedFrom) {
         Map<SignalProvider, SignalProvider> map = new HashMap<>();
 
-        for (Iterator<SensorNode<O, ?, N>> orig = clonedFrom.getSensors().listIterator(),
-                                           mine = this.getSensors().listIterator();
-                orig.hasNext();) {
+        for (Iterator<SensorNode<S, N>> orig = clonedFrom.getSensors().listIterator(),
+             mine = this.getSensors().listIterator();
+             orig.hasNext();) {
 
             map.put(orig.next(), mine.next());
         }
@@ -216,7 +217,7 @@ public abstract class NeuralNet<O extends Sensable<O>,
     public Map<SignalConsumer, SignalConsumer> getDecisionCloneMap(N clonedFrom) {
         Map<SignalConsumer, SignalConsumer> map = new HashMap<>();
 
-        for (Iterator<DecisionNode<C, ?, N>> orig = clonedFrom.getDecisionNodes().listIterator(),
+        for (Iterator<DecisionNode<N, C>> orig = clonedFrom.getDecisionNodes().listIterator(),
                                              mine = this.getDecisionNodes().listIterator();
                 orig.hasNext();) {
 
@@ -226,13 +227,11 @@ public abstract class NeuralNet<O extends Sensable<O>,
         return map;
     }
 
-    public abstract N deepClone();
-
-    public void setSensedObject(O sensedObject) {
+    public void setSensedObject(S sensedObject) {
         this.sensedObjected = sensedObject;
     }
 
-    public O getSensedObject() {
+    public S getSensedObject() {
         return this.sensedObjected;
     }
 

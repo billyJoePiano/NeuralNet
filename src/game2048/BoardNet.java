@@ -1,157 +1,68 @@
 package game2048;
 
-public class BoardNet { /* extends NeuralNet<Board, Board, BoardNet> {
-    private Board board;
+import neuralNet.network.*;
+import neuralNet.neuron.*;
 
-    private SignalProvider up;
-    private SignalProvider down;
-    private SignalProvider left;
-    private SignalProvider right;
+import java.util.*;
 
-    private final Set<Sensor> sensors = makeSensors();
+public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface> {
+    private static final short[] NEURAL_OUTPUTS = new short[] {
+            Short.MIN_VALUE,        //empty
+            -28913,     //2
+            -25058,     //4
+            -21203,     //8
+            -17348,     //16
+            -13493,     //32
+            -9638,      //64
+            -5783,      //128
+            -1928,      //256
+            1928,       //512
+            5783,       //1024
+            9638,       //2048
+            13493,      //4096
+            17348,      //8192
+            21203,      //16384
+            25058,      //32768
+            28913,      //65536
+            Short.MAX_VALUE     //131072
+    };
 
-    private Set<Sensor> makeSensors() {
-        Set<Sensor> sensors = new HashSet<>();
+    private BoardInterface board;
+    public final List<Sensor> sensors = this.makeSensors();
+
+    private List<Sensor> makeSensors() {
+        List<Sensor> sensors = new ArrayList<>(16);
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 sensors.add(new Sensor(i, j));
             }
         }
-        return Collections.unmodifiableSet(sensors);
-    }
-
-    public BoardNet(Board board,
-                    SignalProvider up,
-                    SignalProvider down,
-                    SignalProvider left,
-                    SignalProvider right)
-            throws NullPointerException {
-
-        if (board == null || up == null || down == null || left == null || right == null) {
-            throw new NullPointerException();
-        }
-
-        setBoard(board);
-
-        this.up = up;
-        this.down = down;
-        this.left = left;
-        this.right = right;
-    }
-
-
-    public Board getBoard() {
-        return board;
-    }
-
-    public void setBoard(Board board) throws NullPointerException {
-        if (board == null) throw new NullPointerException();
-        if (this.board != null) {
-            for (Sensor sensor : sensors) {
-                board.removeSensor(sensor.current);
-            }
-        }
-
-        this.board = board;
-
-        for (Sensor sensor : sensors) {
-            board.addSensor(sensor.newSetter());
-        }
-    }
-
-
-    public SignalProvider getUp() {
-        return up;
-    }
-
-    public void setUp(SignalProvider up) throws NullPointerException {
-        if (up == null) throw new NullPointerException();
-        this.up = up;
-    }
-
-    public SignalProvider getDown() {
-        return down;
-    }
-
-    public void setDown(SignalProvider down) {
-        if (down == null) throw new NullPointerException();
-        this.down = down;
-    }
-
-    public SignalProvider getLeft() {
-        return left;
-    }
-
-    public void setLeft(SignalProvider left) throws NullPointerException {
-        if (left == null) throw new NullPointerException();
-        this.left = left;
-    }
-
-    public SignalProvider getRight() {
-        return right;
-    }
-
-    public void setRight(SignalProvider right) throws NullPointerException {
-        if (right == null) throw new NullPointerException();
-        this.right = right;
-    }
-
-    public boolean makeMove() {
-        /*
-        this.up.clearCache();
-        this.down.clearCache();
-        this.left.clearCache();
-        this.right.clearCache();
-
-         */ /*
-
-        List<Decision> decisions = new ArrayList<>();
-
-        decisions.add(new Decision(this.board::up, this.up.getOutput()));
-        decisions.add(new Decision(this.board::down, this.down.getOutput()));
-        decisions.add(new Decision(this.board::left, this.left.getOutput()));
-        decisions.add(new Decision(this.board::right, this.right.getOutput()));
-
-        Collections.sort(decisions);
-
-        for (Decision decision : decisions) {
-            if (decision.action.get()) return true;
-        }
-        return false;
+        return Collections.unmodifiableList(sensors);
     }
 
     @Override
-    public Set<Sensor> getSensors() {
-        return this.sensors;
-    }
-
-    @Override
-    public void setSensedObject(Board board) {
-        this.setBoard(board);
-    }
-
-    @Override
-    public Board getSensedObject() {
+    public List<SignalProvider> getNeurons() {
         return null;
     }
 
     @Override
-    public List<DecisionNode<Board, ?, BoardNet>> getDecisionNodes() {
+    public BoardNet clone() {
         return null;
     }
 
     @Override
-    public BoardNet deepClone() {
+    public List<SensorNode<BoardInterface, BoardNet>> getSensors() {
         return null;
     }
 
-    public class Sensor implements SensorNode<Board, Sensor, BoardNet> {
-        private final int row;
-        private final int col;
+    @Override
+    public List<DecisionNode<BoardNet, BoardInterface>> getDecisionNodes() {
+        return null;
+    }
 
-        private short signal;
-
-        private Setter current = null;
+    public class Sensor extends CachingProvider implements SensorNode<BoardInterface, BoardNet> {
+        public final int row;
+        public final int col;
 
         private Sensor(int row, int col) {
             this.row = row;
@@ -159,112 +70,27 @@ public class BoardNet { /* extends NeuralNet<Board, Board, BoardNet> {
         }
 
         @Override
-        public Board getObservedObject() {
+        public BoardInterface getObservedObject() {
             return BoardNet.this.board;
         }
 
         @Override
-        public BoardNet getNeuralNet() {
+        public BoardNet getDecisionProvider() {
             return BoardNet.this;
         }
 
         @Override
-        public int getOutputId() {
-            return row * 4 + col;
+        public void sense() {
+            this.setCache(NEURAL_OUTPUTS[BoardNet.this.board.getTile(this.row, this.col)]);
         }
 
         @Override
-        public short getOutput() {
-            return signal;
-        }
-
-
-        //TODO!!!!!  implement the below
-        @Override
-        public Set<SignalConsumer> getConsumers() {
-            return null;
-        }
-
-        @Override
-        public boolean addConsumer(SignalConsumer consumer) {
-            return false;
-        }
-
-        @Override
-        public boolean removeConsumer(SignalConsumer consumer) {
-            return false;
-        }
-
-        @Override
-        public void clearConsumers() {
-
-        }
-
-        @Override
-        public SignalProvider clone() {
-            return null;
-        }
-
-        private Setter newSetter() {
-            if (this.current != null) {
-                this.current.isCurrent = false;
-            }
-            return this.current = new Setter();
-        }
-
-        public class Setter implements SensorNode.Setter<Board, Sensor> {
-            private boolean isCurrent = true;
-
-            @Override
-            public void setSignal(short signal) {
-                if (isCurrent) {
-                    Sensor.this.signal = signal;
-
-                } else {
-                    throw new IllegalStateException("Attempting to use a sensor setter that was replaced");
-                }
-            }
-
-            @Override
-            public Sensor getSensor() {
-                return Sensor.this;
-            }
-
-            @Override
-            public int hashCode() {
-                return Sensor.this.hashCode();
-            }
-
-            public boolean equals(Object other) {
-                if (other == this) return true;
-                if (other == null || other.getClass() != this.getClass()) return false;
-                Setter o = (Setter) other;
-                return o.getSensor() == this.getSensor();
-            }
+        protected short calcOutput(List<SignalProvider> inputs) {
+            //sense() should always be called before this, therefore the cache should always be
+            // already-populated when getOutput() is called, and this method should never be needed
+            throw new UnsupportedOperationException();
         }
     }
 
-    private class Decision implements Comparable<Decision> {
-        private final Supplier<Boolean> action;
-        private final short weight;
-        private Double rand; // for rare cases where two Decisions have the same weight
-
-        private Decision(Supplier<Boolean> action, short weight) {
-            this.action = action;
-            this.weight = weight;
-        }
-
-        @Override
-        public int compareTo(Decision other) {
-            if (other == this) return 0;
-            else if (this.weight > other.weight) return -1;
-            else if (other.weight < this.weight) return 1;
-
-            if (this.rand == null) this.rand = Math.random();
-            if (other.rand == null) other.rand = Math.random();
-
-            return this.rand < other.rand ? -1 : 1;
-        }
-    }
-    */
+    //TODO decision nodes
 }

@@ -1,34 +1,11 @@
 package game2048;
 
-import neuralNet.network.*;
-
 import java.io.*;
 import java.util.concurrent.*;
 
-public class Board extends SensableImplentor<Board> implements DecisionConsumer<Board> {
+public class Board {
     private static final int[] POW2 = new int[]
             { 0, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072 };
-
-    private static final short[] NEURAL_OUTPUTS = new short[] {
-            Short.MIN_VALUE,        //empty
-            -28913,     //2
-            -25058,     //4
-            -21203,     //8
-            -17348,     //16
-            -13493,     //32
-            -9638,      //64
-            -5783,      //128
-            -1928,      //256
-            1928,       //512
-            5783,       //1024
-            9638,       //2048
-            13493,      //4096
-            17348,      //8192
-            21203,      //16384
-            25058,      //32768
-            28913,      //65536
-            Short.MAX_VALUE     //131072
-        };
 
     private final byte[][] tiles = new byte[4][4];
     private boolean active = true;
@@ -378,15 +355,7 @@ public class Board extends SensableImplentor<Board> implements DecisionConsumer<
         throw new IllegalStateException();
     }
 
-
-    @Override
-    public int numOutputs() {
-        return 16;
+    public byte getTile(int row, int col) throws ArrayIndexOutOfBoundsException {
+        return this.tiles[row][col];
     }
-
-    @Override
-    public short getSignalFor(int outputId) {
-        return this.tiles[outputId / 4][outputId % 4];
-    }
-
 }

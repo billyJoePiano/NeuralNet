@@ -35,7 +35,6 @@ public abstract class CachingProvider implements SignalProvider {
     }
 
     protected abstract short calcOutput(List<SignalProvider> inputs);
-    public abstract CachingProvider clone();
 
     @Override
     public void before() {

@@ -1,16 +1,29 @@
 package neuralNet.network;
 
-public interface DecisionConsumer<C extends DecisionConsumer<C>> {
+import java.util.*;
 
-    public int get
+public interface DecisionConsumer<S extends Sensable<S>,
+                                    C extends DecisionConsumer<S, C, F>,
+                                    F extends Fitness<C, F>> {
 
-    default public void makeDecision() {
-        /*
-        //based on assumption of only one
-        Set<DecisionNode<O, ? extends DecisionNode>> decisions = new TreeSet<>(this.getDecisionNodes());
+    public int decisionCount();
+
+    /**
+     * Attempt to take the given action by decisionId, and return true if it succeeded, false if not
+     * @param decisionId
+     * @return
+     */
+    public boolean takeAction(int decisionId) throws IllegalArgumentException;
+
+    public F testFitness(DecisionProvider<S, ?, C> decisionProvider, List<S> usingInputs);
+
+    default public void runRound(DecisionProvider<S, ?, C> withProvider, S input) {
+        withProvider.runRound();
+
+        ArrayList<DecisionNode<?, C>> decisions = new ArrayList<>(withProvider.getDecisionNodes());
+        Collections.sort(decisions);
         for (DecisionNode decision : decisions) {
-            if (decision.executeDecision()) break;
+            if (this.takeAction(decision.getDecisionId())) break;
         }
-         */
     }
 }
