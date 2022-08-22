@@ -4,20 +4,20 @@ import neuralNet.function.*;
 
 import java.util.*;
 
-public class CachingNeuronUsingStatelessFunction extends CachingNeuron {
-    public final StatelessFunction outputFunction;
+public class CachingNeuronUsingFunction extends CachingNeuron {
+    public final FunctionWithInputs outputFunction;
 
-    public CachingNeuronUsingStatelessFunction(CachingNeuronUsingStatelessFunction cloneFrom) {
+    public CachingNeuronUsingFunction(CachingNeuronUsingFunction cloneFrom) {
         super(cloneFrom);
         this.outputFunction = cloneFrom.outputFunction;
     }
 
-    protected CachingNeuronUsingStatelessFunction(CachingNeuronUsingStatelessFunction cloneFrom, StatelessFunction outputFunction) {
+    protected CachingNeuronUsingFunction(CachingNeuronUsingFunction cloneFrom, FunctionWithInputs outputFunction) {
         super(cloneFrom);
         this.outputFunction = outputFunction;
     }
 
-    public CachingNeuronUsingStatelessFunction(StatelessFunction outputFunction)
+    public CachingNeuronUsingFunction(FunctionWithInputs outputFunction)
             throws NullPointerException {
 
         super();
@@ -25,7 +25,7 @@ public class CachingNeuronUsingStatelessFunction extends CachingNeuron {
         this.outputFunction = outputFunction;
     }
 
-    public CachingNeuronUsingStatelessFunction(List<SignalProvider> inputs, StatelessFunction outputFunction)
+    public CachingNeuronUsingFunction(List<SignalProvider> inputs, FunctionWithInputs outputFunction)
             throws NullPointerException {
 
         super();
@@ -52,8 +52,8 @@ public class CachingNeuronUsingStatelessFunction extends CachingNeuron {
     }
 
     @Override
-    public CachingNeuronUsingStatelessFunction clone() {
-        return new CachingNeuronUsingStatelessFunction(this);
+    public CachingNeuronUsingFunction clone() {
+        return new CachingNeuronUsingFunction(this);
     }
 
     public String toString() {

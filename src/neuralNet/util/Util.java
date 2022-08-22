@@ -1,24 +1,10 @@
-package neuralNet.function;
+package neuralNet.util;
 
-import neuralNet.neuron.*;
-
-import java.util.*;
-
-public interface StatelessFunction {
-    default public int getMinInputs() {
-        return 0;
-    }
-    default public int getMaxInputs() {
-        return 0;
-    }
-    public short calcOutput(List<SignalProvider> inputs);
-
-
-
-    ///////////////////////////////////////// STATIC UTILITIES AND CONSTANTS BELOW, for use by implementations
+public abstract class Util {
+    private Util() { throw new IllegalStateException(); }
 
     public static final double RANGE = (double)Short.MAX_VALUE - (double)Short.MIN_VALUE;
-    public static final int RANGE_INT = (int)Short.MAX_VALUE - (int)Short.MIN_VALUE;
+    public static final int RANGE_INT = (int)Short.MAX_VALUE - (int)Short.MIN_VALUE + 1;
     public static final double RANGE_INV = 1 / RANGE;
 
     public static final double NORMALIZE = RANGE + 1;
@@ -33,12 +19,11 @@ public interface StatelessFunction {
     public static final double DEZEROIZE_NEGATIVE = RANGE - ZEROIZE;
     public static final int DEZEROIZE_NEGATIVE_INT = RANGE_INT - ZEROIZE_INT;
 
-
     public static final double MAX_PLUS_ONE = (double)Short.MAX_VALUE + 1;
     public static final double HALF_MAX_PLUS_ONE = ((double)Short.MAX_VALUE + 1) / 2;
 
-    public static final double HALF_MAX = (double)Short.MAX_VALUE / 2.0;
-    public static final double HALF_MIN = (double)Short.MIN_VALUE / 2.0;
+    public static final double HALF_MAX = (double)Short.MAX_VALUE / 2;
+    public static final double HALF_MIN = (double)Short.MIN_VALUE / 2;
 
     public static final double TWICE_MAX = (double)Short.MAX_VALUE * 2.0;
     public static final double TWICE_MIN = (double)Short.MIN_VALUE * 2.0;

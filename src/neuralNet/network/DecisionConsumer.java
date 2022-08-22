@@ -1,6 +1,8 @@
 package neuralNet.network;
 
-public interface DecisionConsumer<O extends DecisionConsumer<O>> {
+public interface DecisionConsumer<C extends DecisionConsumer<C>> {
+
+    public int get
 
     default public void makeDecision() {
         /*

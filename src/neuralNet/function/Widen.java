@@ -1,25 +1,24 @@
-package neuralNet.network;
+package neuralNet.function;
 
-import neuralNet.function.*;
 import neuralNet.neuron.*;
 
 import java.util.*;
 
-public class Widen implements StatelessFunction {
+public class Widen implements FunctionWithInputs {
     public static final double MULTIPLIER = 181.01933598375616624661615669884; // 128 * sqrt(2) aka sqrt(2^15 or 32768)
 
     public static final Widen instance = new Widen();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingStatelessFunction(Arrays.asList(input), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
+        return new CachingNeuronUsingFunction(Arrays.asList(input), instance);
     }
 
     private Widen() { }

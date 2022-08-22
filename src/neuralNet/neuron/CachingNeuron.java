@@ -3,36 +3,9 @@ package neuralNet.neuron;
 import neuralNet.util.*;
 import java.util.*;
 
-public abstract class CachingNeuron implements Neuron {
-    public static final double RANGE = (double)Short.MAX_VALUE - (double)Short.MIN_VALUE;
-    public static final int RANGE_INT = (int)Short.MAX_VALUE - (int)Short.MIN_VALUE + 1;
-    public static final double RANGE_INV = 1 / RANGE;
-
-    public static final double NORMALIZE = RANGE + 1;
-    public static final int NORMALIZE_INT = RANGE_INT + 1;
-    public static final double NORMALIZE_INV = 1 / NORMALIZE;
-
-    public static final double ZEROIZE = -((double)Short.MIN_VALUE);
-    public static final int ZEROIZE_INT = -((int)Short.MIN_VALUE);
-
-
-    public static final double MAX_PLUS_ONE = (double)Short.MAX_VALUE + 1;
-
-    public static final double HALF_MAX = (double)Short.MAX_VALUE / 2;
-    public static final double HALF_MIN = (double)Short.MIN_VALUE / 2;
-
-    public static final double PI = Math.PI;
-    public static final double TWO_PI = Math.PI * 2;
-
-
+public abstract class CachingNeuron extends CachingProvider implements Neuron {
     private List<SignalProvider> inputs;
     private List<SignalProvider> inputsView;
-
-    private final Set<SignalConsumer> consumers = Collections.newSetFromMap(new WeakHashMap<>());
-    private final Set<SignalConsumer> consumersView = Collections.unmodifiableSet(this.consumers);
-
-
-    private Short output;
 
     /**
      * SHOULD ONLY BE INVOKED BY IMPLEMENTATIONS WHICH HAVE getMinInputs() == 0 !!!!
@@ -45,15 +18,12 @@ public abstract class CachingNeuron implements Neuron {
         this(cloneFrom, false);
     }
 
-    protected CachingNeuron(CachingNeuron cloneFrom, boolean cloneConsumersAndOutput) {
+    protected CachingNeuron(CachingNeuron cloneFrom, boolean cloneConsumers) {
+        super(cloneFrom, cloneConsumers);
+
         if (cloneFrom.inputs != null) {
             this.inputs = new ArrayList<>(cloneFrom.inputs);
             this.inputsView = Collections.unmodifiableList(this.inputs);
-        }
-
-        if (cloneConsumersAndOutput && cloneFrom.consumers != null) {
-            this.consumers.addAll(cloneFrom.consumers);
-            this.output = cloneFrom.output;
         }
     }
 
@@ -61,10 +31,15 @@ public abstract class CachingNeuron implements Neuron {
         this.setInputs(inputs);
     }
 
+    @Override
+    public abstract CachingNeuron clone();
+
+    @Override
     public List<SignalProvider> getInputs() {
         return this.inputsView;
     }
 
+    @Override
     public void setInputs(List<SignalProvider> inputs) throws IllegalArgumentException {
         ListWithView<SignalProvider> oldInputs = new ListWithView<>(this.inputs, this.inputsView);
         ListWithView<SignalProvider> newInputs = this.validateInputs(inputs);
@@ -89,6 +64,7 @@ public abstract class CachingNeuron implements Neuron {
         }
     }
 
+    @Override
     public SignalProvider replaceInput(int index, SignalProvider newProvider)
             throws NullPointerException {
 
@@ -145,65 +121,6 @@ public abstract class CachingNeuron implements Neuron {
     }
 
     @Override
-    public void replaceAllInputs(Map<SignalProvider, SignalProvider> replacements)
-        throws IllegalStateException {
-
-        for (ListIterator<SignalProvider> iterator = this.inputs.listIterator();
-                iterator.hasNext();) {
-
-            SignalProvider old = iterator.next();
-            SignalProvider newProvider = replacements.get(old);
-            if (newProvider == null || newProvider == old) {
-                throw new IllegalStateException();
-            }
-            iterator.set(newProvider);
-        }
-    }
-
-    protected abstract short calcOutput(List<SignalProvider> inputs);
-
-    @Override
-    public void before() {
-        this.output = null;
-    }
-
-    public void reset() {
-        this.output = null;
-    }
-
-    protected final void setCache(short value) {
-        this.output = value;
-    }
-
-    public short getOutput() {
-        if (this.output != null) return this.output;
-
-        return this.output = this.calcOutput(this.inputsView);
-    }
-
-    @Override
-    public Set<SignalConsumer> getConsumers() {
-        return this.consumersView;
-    }
-
-    @Override
-    public boolean addConsumer(SignalConsumer consumer) {
-        return this.consumers.add(consumer);
-    }
-
-    @Override
-    public boolean removeConsumer(SignalConsumer consumer) {
-        return this.consumers.remove(consumer);
-    }
-
-    @Override
-    public void clearConsumers() {
-        this.consumers.clear();
-    }
-
-    public abstract CachingNeuron clone();
-
-    @Override
     public void replaceInputs(Map<SignalProvider, SignalProvider> neuronMap) {
         for (ListIterator<SignalProvider> iterator = this.inputs.listIterator();
              iterator.hasNext();) {
@@ -217,22 +134,5 @@ public abstract class CachingNeuron implements Neuron {
             }
             iterator.set(replacement);
         }
-    }
-
-    @Override
-    public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {
-        Set<SignalConsumer> newConsumers = Collections.newSetFromMap(new HashMap<>(this.consumers.size()));
-
-        for (Iterator<SignalConsumer> iterator = this.consumers.iterator();
-             iterator.hasNext();) {
-
-            SignalConsumer orig = iterator.next();
-            SignalConsumer replacement = neuronMap.get(iterator.next());
-            if (replacement == null) throw new IllegalStateException();
-            newConsumers.add(replacement);
-        }
-
-        this.consumers.clear();
-        this.consumers.addAll(newConsumers);
     }
 }

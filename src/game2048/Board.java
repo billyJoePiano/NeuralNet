@@ -39,7 +39,7 @@ public class Board extends SensableImplentor<Board> implements DecisionConsumer<
         System.out.println(board);
         boolean moved = true;
 
-        while (board.getActive()) {
+        while (board.isActive()) {
             try {
                 switch(System.in.read()) {
                     case 115: moved = board.up(); break;
@@ -78,8 +78,17 @@ public class Board extends SensableImplentor<Board> implements DecisionConsumer<
         return score;
     }
 
-    public boolean getActive() {
+    public boolean isActive() {
         return this.active;
+    }
+
+    public void reset() {
+        this.active = true;
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                this.tiles[i][j] = 0;
+            }
+        }
     }
 
     public String toString() {

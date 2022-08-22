@@ -2,7 +2,7 @@ package neuralNet.neuron;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessFunction.roundClip;
+import static neuralNet.function.FunctionWithInputs.roundClip;
 
 /**
  * Memories taper into full signal weight over the course of the initial delay number of rounds.

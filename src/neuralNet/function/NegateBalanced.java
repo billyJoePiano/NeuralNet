@@ -14,19 +14,19 @@ import java.util.*;
  *
  * This function is the perfect inverse of itself, for all input values
  */
-public class NegateBalanced implements StatelessFunction {
+public class NegateBalanced implements FunctionWithInputs {
     public static final NegateBalanced instance = new NegateBalanced();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingStatelessFunction(List.of(input), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
+        return new CachingNeuronUsingFunction(List.of(input), instance);
     }
 
     private NegateBalanced() { }

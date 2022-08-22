@@ -4,9 +4,9 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessMutatableFunction.*;
+import static neuralNet.function.Mutatable.*;
 
-public class Floor implements StatelessMutatableFunction<Floor> {
+public class Floor implements Mutatable<Floor> {
     public final short floor;
     private List<Param> mutationParams;
 

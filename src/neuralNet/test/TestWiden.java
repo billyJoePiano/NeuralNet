@@ -1,6 +1,6 @@
 package neuralNet.test;
 
-import neuralNet.network.*;
+import neuralNet.function.*;
 
 public class TestWiden {
     public static void main (String[] args) {

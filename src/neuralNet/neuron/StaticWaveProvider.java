@@ -1,19 +1,18 @@
 package neuralNet.neuron;
 
 import neuralNet.function.*;
-import neuralNet.network.*;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessFunction.*;
-import static neuralNet.function.StatelessMutatableFunction.*;
+import static neuralNet.function.Mutatable.*;
+import static neuralNet.util.Util.*;
 
 /**
  * Forms a sine-wave with given period expressed as a coefficient of pi
  * (aka, where 2.0 represents a full sine-wave cycle) and a phase-shift
  * also expressed as coefficient of pi
  */
-public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticWaveNeuron> {
+public class StaticWaveProvider extends CachingProvider implements Mutatable<StaticWaveProvider> {
     public static final List<WaveFunction> WAVE_FUNCTIONS =
             List.of(SineWave.instance, TriangleWave.instance, SawWave.instance, SquareWave.instance);
 
@@ -44,7 +43,7 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
 
     private double currentPhase;
 
-    public StaticWaveNeuron(WaveFunction waveFunction, double period, double phase) {
+    public StaticWaveProvider(WaveFunction waveFunction, double period, double phase) {
         super();
 
         if (waveFunction == null || period == 0 || !(Double.isFinite(period) && Double.isFinite(phase))) {
@@ -64,7 +63,7 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
         this.currentPhase = this.phase;
     }
 
-    public StaticWaveNeuron(StaticWaveNeuron cloneFrom, WaveFunction waveFunction, double period, double phase) {
+    public StaticWaveProvider(StaticWaveProvider cloneFrom, WaveFunction waveFunction, double period, double phase) {
         super(cloneFrom);
 
         if (waveFunction == null || period == 0 || !(Double.isFinite(period) && Double.isFinite(phase))) {
@@ -84,7 +83,7 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
         this.currentPhase = this.phase;
     }
 
-    public StaticWaveNeuron(StaticWaveNeuron cloneFrom) {
+    public StaticWaveProvider(StaticWaveProvider cloneFrom) {
         super();
         this.waveFunction = cloneFrom.waveFunction;
         this.sign = cloneFrom.sign;
@@ -95,7 +94,7 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
         this.currentPhase = this.phase;
     }
 
-    public StaticWaveNeuron(StaticWaveNeuron cloneFrom, WaveFunction waveFunction) {
+    public StaticWaveProvider(StaticWaveProvider cloneFrom, WaveFunction waveFunction) {
         super(cloneFrom);
         if (waveFunction == null) throw new IllegalArgumentException();
         this.waveFunction = waveFunction;
@@ -107,7 +106,7 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
         this.currentPhase = this.phase;
     }
 
-    public StaticWaveNeuron(StaticWaveNeuron cloneFrom, double period, double phase) {
+    public StaticWaveProvider(StaticWaveProvider cloneFrom, double period, double phase) {
         this(cloneFrom, cloneFrom.waveFunction, period, phase);
     }
 
@@ -148,8 +147,8 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
     }
 
     @Override
-    public StaticWaveNeuron clone() {
-        return new StaticWaveNeuron(this);
+    public StaticWaveProvider clone() {
+        return new StaticWaveProvider(this);
     }
 
     @Override
@@ -159,15 +158,15 @@ public class StaticWaveNeuron extends CachingNeuron implements Mutatable<StaticW
     }
 
     @Override
-    public StaticWaveNeuron mutate(short[] params) {
+    public StaticWaveProvider mutate(short[] params) {
         double period = transformByMagnitudeAndSign(this.period, params[0], params[1]);
         double phase = this.phase + (double)params[2] / MAX_PLUS_ONE;
 
-        return new StaticWaveNeuron(this, this.waveFunction.mutate(params[3]), period, phase);
+        return new StaticWaveProvider(this, this.waveFunction.mutate(params[3]), period, phase);
     }
 
     @Override
-    public short[] getMutationParams(StaticWaveNeuron toAchieve) {
+    public short[] getMutationParams(StaticWaveProvider toAchieve) {
         short[] params = toAchieveByMagnitudeAndSign(new short[4], this.period, toAchieve.period);
 
         params[2] = (short)Math.round((toAchieve.phase - this.phase) * MAX_PLUS_ONE);

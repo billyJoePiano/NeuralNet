@@ -1,18 +1,20 @@
 package neuralNet.neuron;
 
+import neuralNet.function.*;
+
 import java.util.*;
 
-import static neuralNet.function.StatelessMutatableFunction.*;
+import static neuralNet.function.Mutatable.*;
 
-public class FixedValueNeuron implements SignalProvider, Mutatable<FixedValueNeuron> {
+public class FixedValueProvider implements SignalProvider, Mutatable<FixedValueProvider> {
     public final short output;
     private List<Param> mutationParams;
 
-    public FixedValueNeuron() {
+    public FixedValueProvider() {
         this((short)0);
     }
 
-    public FixedValueNeuron(final short output) {
+    public FixedValueProvider(final short output) {
         this.output = output;
     }
 
@@ -29,13 +31,13 @@ public class FixedValueNeuron implements SignalProvider, Mutatable<FixedValueNeu
     }
 
     @Override
-    public FixedValueNeuron mutate(short[] params) {
+    public FixedValueProvider mutate(short[] params) {
         if (params[0] == 0) return this;
-        return new FixedValueNeuron((short)(this.output + params[0]));
+        return new FixedValueProvider((short)(this.output + params[0]));
     }
 
     @Override
-    public short[] getMutationParams(FixedValueNeuron toAchieve) {
+    public short[] getMutationParams(FixedValueProvider toAchieve) {
         return toAchieve(this.output, toAchieve.output);
     }
 
@@ -54,11 +56,22 @@ public class FixedValueNeuron implements SignalProvider, Mutatable<FixedValueNeu
         return false;
     }
 
-    @Override
-    public void clearConsumers() { }
+    //@Override
+    //public void clearConsumers() { }
 
     @Override
-    public FixedValueNeuron clone() {
+    public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer) {
+        return false;
+    }
+
+    @Override
+    public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) { }
+
+    @Override
+    public void reset() { }
+
+    @Override
+    public FixedValueProvider clone() {
         return this;
     }
 

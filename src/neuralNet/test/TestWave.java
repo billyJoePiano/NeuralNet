@@ -10,7 +10,7 @@ import java.time.format.*;
 import java.util.*;
 import java.util.stream.*;
 
-import static neuralNet.function.StatelessFunction.*;
+import static neuralNet.util.Util.*;
 
 // Output can be copied into Excel spreadsheet for graphing
 public class TestWave {
@@ -18,15 +18,15 @@ public class TestWave {
     public static final double PHASE = Math.sqrt(2);
     public static final int ROUNDS = -1; //(int)Math.abs(PERIOD * 1.125);
 
-    public static final FixedValueNeuron phase = makePhaseNeuron();
-    public static final FixedValueNeuron period = new FixedValueNeuron(Short.MAX_VALUE);
+    public static final FixedValueProvider phase = makePhaseNeuron();
+    public static final FixedValueProvider period = new FixedValueProvider(Short.MAX_VALUE);
 
     public static final double PHASE_ROUNDED = (double)phase.getOutput() / MAX_PLUS_ONE;
 
-    public static final Neuron sine = SineWave.makeNeuron(PERIOD, PHASE_ROUNDED);
-    public static final Neuron triangle = TriangleWave.makeNeuron(PERIOD, PHASE_ROUNDED);
-    public static final Neuron saw = SawWave.makeNeuron(PERIOD, PHASE_ROUNDED);
-    public static final Neuron square = SquareWave.makeNeuron(PERIOD, PHASE_ROUNDED);
+    public static final SignalProvider sine = SineWave.makeNeuron(PERIOD, PHASE_ROUNDED);
+    public static final SignalProvider triangle = TriangleWave.makeNeuron(PERIOD, PHASE_ROUNDED);
+    public static final SignalProvider saw = SawWave.makeNeuron(PERIOD, PHASE_ROUNDED);
+    public static final SignalProvider square = SquareWave.makeNeuron(PERIOD, PHASE_ROUNDED);
 
     public static final Neuron sineVar = SineWave.makeNeuron(period, phase, PERIOD / 4, PERIOD);
     public static final Neuron triangleVar = TriangleWave.makeNeuron(period, phase, PERIOD / 4, PERIOD);
@@ -34,13 +34,13 @@ public class TestWave {
     public static final Neuron squareVar = SquareWave.makeNeuron(period, phase, PERIOD / 4, PERIOD);
 
 
-    private static FixedValueNeuron makePhaseNeuron() {
+    private static FixedValueProvider makePhaseNeuron() {
         double phase;
         if (PHASE < 1) phase = PHASE;
         else phase = PHASE - 2.0;
         phase = Math.round(phase * MAX_PLUS_ONE);
 
-        return new FixedValueNeuron((short)phase);
+        return new FixedValueProvider((short)phase);
     }
 
 
@@ -76,7 +76,7 @@ public class TestWave {
 
             StringBuffer sb = new StringBuffer();
 
-            for (Neuron neuron : tester.waveNeurons) {
+            for (SignalProvider neuron : tester.waveNeurons) {
                 sb.append(neuron.getClass().getSimpleName() + "\t");
             }
             sb.setCharAt(sb.length() - 1, '\n');
@@ -100,11 +100,11 @@ public class TestWave {
     }
 
 
-    private final List<Neuron> waveNeurons;
-    private final Set<Neuron> allNeurons; // may include neurons which the wave neurons depend upon
-    private Map<Neuron, Set<Neuron>> pairs;
+    private final List<SignalProvider> waveNeurons;
+    private final Set<SignalProvider> allNeurons; // may include neurons which the wave neurons depend upon
+    private Map<SignalProvider, Set<SignalProvider>> pairs;
 
-    public TestWave(List<Neuron> neurons) {
+    public TestWave(List<SignalProvider> neurons) {
         this.waveNeurons = new ArrayList<>(neurons);
         this.allNeurons = new HashSet<>(neurons);
     }
@@ -126,7 +126,7 @@ public class TestWave {
         List<NeuronTracker> trackers;
 
         if (this.pairs != null) {
-            Map<Neuron, NeuronTracker> trackerMap = new HashMap<>(this.waveNeurons.size());
+            Map<SignalProvider, NeuronTracker> trackerMap = new HashMap<>(this.waveNeurons.size());
             trackers = waveNeurons.stream()
                     .map(neuron -> new NeuronTracker(neuron, trackerMap))
                     .collect(Collectors.toList());
@@ -143,7 +143,7 @@ public class TestWave {
 
         for (int i = 0; i != numberOfRounds; i++) {
             trackers.forEach(tracker -> tracker.finishedCurrentRound = false);
-            this.allNeurons.forEach(Neuron::before);
+            this.allNeurons.forEach(SignalProvider::before);
 
             this.newPeriod = false;
             //boolean newPeriod = false;
@@ -225,7 +225,7 @@ public class TestWave {
             }
 
             System.err.flush();
-            this.allNeurons.forEach(Neuron::after);
+            this.allNeurons.forEach(SignalProvider::after);
             newPeriodTrackers.clear();
         }
 
@@ -251,7 +251,7 @@ public class TestWave {
      * @param n1
      * @param n2
      */
-    public synchronized void registerPair(Neuron n1, Neuron n2) throws IllegalArgumentException {
+    public synchronized void registerPair(SignalProvider n1, SignalProvider n2) throws IllegalArgumentException {
         if (!(this.waveNeurons.contains(n1) && this.waveNeurons.contains(n2))) {
             throw new IllegalArgumentException();
         }
@@ -264,12 +264,12 @@ public class TestWave {
 
 
     public class NeuronTracker {
-        private final Neuron neuron;
-        private final Map<Neuron, NeuronTracker> trackerMap;
+        private final SignalProvider neuron;
+        private final Map<SignalProvider, NeuronTracker> trackerMap;
         private Set<NeuronTracker> pairedWith;
-        private Map<Neuron, Integer> offByOne;
-        private Map<Neuron, Integer> offByMoreThanOne;
-        private final Map<Neuron, Integer> outOfPhase = new HashMap<>();
+        private Map<SignalProvider, Integer> offByOne;
+        private Map<SignalProvider, Integer> offByMoreThanOne;
+        private final Map<SignalProvider, Integer> outOfPhase = new HashMap<>();
 
 
         private boolean sign;
@@ -279,12 +279,12 @@ public class TestWave {
         private final LinkedList<Double> roundsPerPeriod = new LinkedList<>();
         private boolean finishedCurrentRound = false;
 
-        public NeuronTracker(Neuron waveNeuron) {
+        public NeuronTracker(SignalProvider waveNeuron) {
             this.neuron = waveNeuron;
             this.trackerMap = null;
         }
 
-        public NeuronTracker(Neuron waveNeuron, Map<Neuron, NeuronTracker> trackerMap) {
+        public NeuronTracker(SignalProvider waveNeuron, Map<SignalProvider, NeuronTracker> trackerMap) {
             this.neuron = waveNeuron;
             this.trackerMap = trackerMap;
             trackerMap.put(this.neuron, this);
@@ -292,14 +292,14 @@ public class TestWave {
 
         // should only be invoked when this.trackerMap != null and TestWave.this.pairs != null
         private void checkForPairedWith() {
-            Set<Neuron> paired = TestWave.this.pairs.get(this.neuron);
+            Set<SignalProvider> paired = TestWave.this.pairs.get(this.neuron);
             if (paired == null) return;
 
             this.pairedWith = new HashSet<>();
             this.offByOne = new HashMap<>();
             this.offByMoreThanOne = new HashMap<>();
 
-            for (Neuron neuron : paired) {
+            for (SignalProvider neuron : paired) {
                 this.pairedWith.add(this.trackerMap.get(neuron));
                 this.offByOne.put(neuron, 0);
                 this.offByMoreThanOne.put(neuron, 0);

@@ -18,7 +18,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
         inputs.add(0, this);
 
         for (short i = 1; i <= numInputs; i++) {
-            inputs.add(new FixedValueNeuron(i));
+            inputs.add(new FixedValueProvider(i));
         }
 
         this.neuron = switchNeuron;
@@ -27,10 +27,10 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
 
     public SwitchIterable(Neuron switchNeuron, short[] inputVals) {
         List<SignalProvider> inputs = new ArrayList(inputVals.length + 1);
-        inputs.add(0, new CachingNeuronUsingStatelessFunction(this::controlInput));
+        inputs.add(0, new CachingNeuronUsingFunction(this::controlInput));
 
         for (short val : inputVals) {
-            inputs.add(new FixedValueNeuron(val));
+            inputs.add(new FixedValueProvider(val));
         }
 
         this.neuron = switchNeuron;
@@ -38,7 +38,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     }
 
     public SwitchIterable(Neuron switchNeuron, List<SignalProvider> inputs) {
-        inputs.add(0, new CachingNeuronUsingStatelessFunction(this::controlInput));
+        inputs.add(0, new CachingNeuronUsingFunction(this::controlInput));
         this.neuron = switchNeuron;
         switchNeuron.setInputs(inputs);;
     }

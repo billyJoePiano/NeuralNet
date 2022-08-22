@@ -2,8 +2,8 @@ package neuralNet.neuron;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessFunction.roundClip;
-import static neuralNet.function.StatelessMutatableFunction.*;
+import static neuralNet.function.FunctionWithInputs.roundClip;
+import static neuralNet.function.Mutatable.*;
 
 /**
  * Memories may have a delay period with no signal strength, and then may fade into full strength.

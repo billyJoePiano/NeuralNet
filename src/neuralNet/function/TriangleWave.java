@@ -1,9 +1,8 @@
 package neuralNet.function;
 
-import neuralNet.network.*;
 import neuralNet.neuron.*;
 
-import static neuralNet.function.StatelessFunction.*;
+import static neuralNet.function.FunctionWithInputs.*;
 
 public class TriangleWave implements WaveFunction {
     public static final double PI = Math.PI;
@@ -11,8 +10,8 @@ public class TriangleWave implements WaveFunction {
 
     public static final TriangleWave instance = new TriangleWave();
 
-    public static StaticWaveNeuron makeNeuron(double period, double phase) {
-        return new StaticWaveNeuron(instance, period, phase);
+    public static StaticWaveProvider makeNeuron(double period, double phase) {
+        return new StaticWaveProvider(instance, period, phase);
     }
 
     public static VariableWaveNeuron makeNeuron(SignalProvider period, SignalProvider phase,

@@ -1,7 +1,7 @@
-package neuralNet.network;
+package neuralNet.function;
 
-import static neuralNet.function.StatelessMutatableFunction.*;
-import static neuralNet.neuron.StaticWaveNeuron.*;
+import static neuralNet.function.Mutatable.*;
+import static neuralNet.neuron.StaticWaveProvider.*;
 
 public interface WaveFunction {
     public double calc(double phasePosition);

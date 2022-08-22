@@ -7,19 +7,19 @@ import java.util.*;
 /**
  * AKA AdditionNormalized
  */
-public class GreaterThanOrEqualTo implements StatelessFunction {
+public class GreaterThanOrEqualTo implements FunctionWithInputs {
     public static final GreaterThanOrEqualTo instance = new GreaterThanOrEqualTo();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingStatelessFunction(Arrays.asList(value, comparedTo), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
+        return new CachingNeuronUsingFunction(Arrays.asList(value, comparedTo), instance);
     }
 
     private GreaterThanOrEqualTo() { }

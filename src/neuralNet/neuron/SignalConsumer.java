@@ -12,8 +12,8 @@ public interface SignalConsumer {
 
     public List<SignalProvider> getInputs();
     public void setInputs(List<SignalProvider> inputs);
+
     public boolean replaceInput(SignalProvider oldProvider, SignalProvider newProvider);
     public SignalProvider replaceInput(int index, SignalProvider newProvider);
-
-    public void replaceAllInputs(Map<SignalProvider, SignalProvider> replacements) throws IllegalStateException;
+    public void replaceInputs(Map<SignalProvider, SignalProvider> replacements) throws IllegalStateException;
 }

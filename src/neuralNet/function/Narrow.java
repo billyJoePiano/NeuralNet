@@ -4,21 +4,21 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-public class Narrow implements StatelessFunction {
+public class Narrow implements FunctionWithInputs {
     public static final double INV_MULTIPLIER = 1 / (double)32768;
 
     public static final Narrow instance = new Narrow();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingStatelessFunction(Arrays.asList(input), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
+        return new CachingNeuronUsingFunction(Arrays.asList(input), instance);
     }
 
     private Narrow() { }

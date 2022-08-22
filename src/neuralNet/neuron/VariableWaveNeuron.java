@@ -1,12 +1,11 @@
 package neuralNet.neuron;
 
-import neuralNet.network.*;
+import neuralNet.function.*;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessFunction.*;
-import static neuralNet.function.StatelessMutatableFunction.*;
-import static neuralNet.neuron.StaticWaveNeuron.*;
+import static neuralNet.function.Mutatable.*;
+import static neuralNet.neuron.StaticWaveProvider.*;
 
 /**
  * TODO: Write a neuralNet.test which verifies that all subclass implementations, when given the same period input,

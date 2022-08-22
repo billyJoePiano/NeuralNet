@@ -4,21 +4,21 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessFunction.*;
+import static neuralNet.function.FunctionWithInputs.*;
 
-public class DifferenceNormalized implements StatelessFunction {
+public class DifferenceNormalized implements FunctionWithInputs {
     public static final DifferenceNormalized instance = new DifferenceNormalized();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingStatelessFunction(Arrays.asList(value, comparedTo), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
+        return new CachingNeuronUsingFunction(Arrays.asList(value, comparedTo), instance);
     }
 
     private DifferenceNormalized() { }

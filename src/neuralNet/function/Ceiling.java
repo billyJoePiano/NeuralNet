@@ -4,9 +4,9 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessMutatableFunction.*;
+import static neuralNet.function.Mutatable.*;
 
-public class Ceiling implements StatelessMutatableFunction<Ceiling> {
+public class Ceiling implements Mutatable<Ceiling> {
     public final short ceiling;
     private List<Param> mutationParams;
 

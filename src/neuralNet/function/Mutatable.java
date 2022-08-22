@@ -2,7 +2,9 @@ package neuralNet.function;
 
 import java.util.*;
 
-public interface StatelessMutatableFunction<F extends StatelessMutatableFunction<F>> extends StatelessFunction {
+import static neuralNet.util.Util.*;
+
+public interface Mutatable<F extends Mutatable<F>> {
     public List<Param> getMutationParams();
     public F mutate(short[] params);
     public short[] getMutationParams(F toAchieve);
@@ -42,7 +44,6 @@ public interface StatelessMutatableFunction<F extends StatelessMutatableFunction
             this.max = (short)max;
         }
     }
-
 
     public static final double LOG4 = Math.log(4);
 

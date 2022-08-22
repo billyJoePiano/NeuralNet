@@ -8,16 +8,20 @@ public abstract class NeuralNet<O extends Sensable<O>,
                             C extends DecisionConsumer<C>,
                             N extends NeuralNet<O, C, N>> {
 
-    private final Set<Neuron> neurons = Collections.newSetFromMap(new WeakHashMap<>());
-    private final Set<Neuron> neuronsView = Collections.unmodifiableSet(neurons);
+    private final Set<SignalProvider> neurons = Collections.newSetFromMap(new WeakHashMap<>());
+    private final Set<SignalProvider> neuronsView = Collections.unmodifiableSet(neurons);
     private O sensedObjected;
+    private long round = 0;
 
     public abstract List<SensorNode<O, ?, N>> getSensors();
     public abstract List<DecisionNode<C, ?, N>> getDecisionNodes();
 
-
+    protected NeuralNet() { }
 
     protected NeuralNet(Set<Neuron> neurons) throws IllegalStateException {
+
+        this.neurons.addAll(this.getSensors());
+
         for (Neuron neuron : neurons) {
             validateNeuron(neuron);
         }
@@ -27,39 +31,117 @@ public abstract class NeuralNet<O extends Sensable<O>,
         Map<SignalProvider, SignalProvider> providersMap = this.getSensorCloneMap(cloneFrom);
         Map<SignalConsumer, SignalConsumer> consumersMap = this.getDecisionCloneMap(cloneFrom);
 
-        for (Neuron neuron : (Set<Neuron>)((NeuralNet)cloneFrom).neurons) {
-            Neuron mine = neuron.clone();
-            providersMap.put(neuron, mine);
-            consumersMap.put(neuron, mine);
+        // clone neurons from the old instance, and put into the providersMap
+        for (SignalProvider old : (Set<SignalProvider>)((NeuralNet)cloneFrom).neurons) {
+            if (providersMap.containsKey(old)) continue; //SensorNodes
+
+            SignalProvider mine = old.clone();
+            providersMap.put(old, mine);
+
+            if (old instanceof SignalConsumer) {
+                if (!(mine instanceof SignalConsumer)) throw new IllegalStateException();
+                consumersMap.put((SignalConsumer)old, (SignalConsumer)mine);
+            }
 
             this.neurons.add(mine);
         }
 
-        for (Neuron neuron : this.neurons) {
-            neuron.replaceInputs(providersMap);
+        // call replaceInputs using map
+        for (SignalProvider neuron : this.neurons) {
+            if (neuron instanceof SignalConsumer) {
+                ((SignalConsumer)neuron).replaceInputs(providersMap);
+            }
         }
 
-        for (Map.Entry<SignalProvider, SignalProvider> entry : providersMap.entrySet()) {
-            SignalProvider newProvider = entry.getValue();
-            if (this.neurons.contains(newProvider)) continue;
+        int lastSize = 0;
+        Set<Map.Entry<SignalProvider, SignalProvider>> entrySetCopy;
 
-            SignalProvider orig = entry.getKey();
+        // check for Neurons/SignalProviders missing from the cloneFrom net
+        while (lastSize != (lastSize =
+                                (entrySetCopy = new HashSet<>(providersMap.entrySet()))
+                                        .size())) {
+            // need to make copy because providersMap will be mutated, don't want ConcurrentModificationException
 
-            if (newProvider instanceof Neuron) {
-                if (!(orig instanceof Neuron)) throw new IllegalStateException();
-                // TODO PROBLEM : calling neuron.replaceProviders(providersMap)
-                // will throw ConcurrentModificationException on next iteration!!!
+            for (Map.Entry<SignalProvider, SignalProvider> entry : entrySetCopy) {
+                SignalProvider newProvider = entry.getValue();
+                if (this.neurons.contains(newProvider)) continue;
+                else if (newProvider instanceof SensorNode && ((SensorNode)newProvider).getNeuralNet() != this)
+                    throw new IllegalStateException();
 
+                this.neurons.add(newProvider);
 
-            } else if (orig instanceof SignalConsumer) throw new IllegalStateException();
+                SignalProvider orig = entry.getKey();
+
+                if (!(newProvider instanceof SignalConsumer)) {
+                    if (orig instanceof SignalConsumer) throw new IllegalStateException();
+                    else continue;
+
+                } else if (!(orig instanceof SignalConsumer)) throw new IllegalStateException();
+
+                SignalConsumer newConsumer = (SignalConsumer)newProvider;
+                SignalConsumer origConsumer = (SignalConsumer)orig;
+
+                consumersMap.put(origConsumer, newConsumer);
+                newConsumer.replaceInputs(providersMap);
+            }
         }
 
-        for (Neuron neuron : this.neurons) {
-
+        for (SignalProvider neuron : this.neurons) {
+            neuron.replaceConsumers(consumersMap);
         }
     }
 
-    //private void cloneNeuron(Neuron neuron, Map)
+    public long getRound() {
+        return this.round;
+    }
+
+    public void before() {
+        for (SignalProvider neuron : this.neurons) {
+            neuron.before();
+        }
+    }
+
+    public void after() {
+        for (SignalProvider neuron : this.neurons) {
+            neuron.after();
+        }
+        this.round++;
+    }
+
+    public void reset() {
+        this.round = 0;
+        checkForUnaccountedNeurons();
+        for (SignalProvider neuron : this.neurons) {
+            neuron.reset();
+        }
+    }
+
+    public void checkForUnaccountedNeurons() {
+        Set<SignalProvider> copy = new HashSet<>(this.neurons);
+        for (SignalProvider neuron : copy) {
+            if (neuron instanceof SensorNode && ((SensorNode)neuron).getNeuralNet() != this) {
+                throw new IllegalStateException();
+            }
+
+            if (neuron instanceof SignalConsumer) {
+                checkForUnaccountedNeurons((SignalConsumer)neuron);
+            }
+        }
+    }
+
+    protected void checkForUnaccountedNeurons(SignalConsumer neuron) {
+        for (SignalProvider provider : neuron.getInputs()) {
+            if (this.neurons.contains(provider)) continue;
+            if (provider instanceof SensorNode && ((SensorNode)provider).getNeuralNet() != this)
+                throw new IllegalStateException();
+
+            this.neurons.add(provider);
+
+            if (provider instanceof SignalConsumer) {
+                checkForUnaccountedNeurons((SignalConsumer)provider);
+            }
+        }
+    }
 
     private void validateNeuron(Neuron neuron) throws IllegalStateException {
         if (this.neurons.contains(neuron)) return;

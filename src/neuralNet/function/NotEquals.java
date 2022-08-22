@@ -4,19 +4,19 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-public class NotEquals implements StatelessFunction {
+public class NotEquals implements FunctionWithInputs {
     public static final NotEquals instance = new NotEquals();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingStatelessFunction(Arrays.asList(inputs), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
+        return new CachingNeuronUsingFunction(Arrays.asList(inputs), instance);
     }
 
     private NotEquals() { }

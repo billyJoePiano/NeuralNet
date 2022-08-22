@@ -1,7 +1,6 @@
 package neuralNet.test;
 
 import neuralNet.function.*;
-import neuralNet.network.*;
 import neuralNet.neuron.*;
 
 import java.util.*;
@@ -27,7 +26,7 @@ public class TestVariableWave {
     public static final VariableWaveNeuron triangle = TriangleWave.makeNeuron(period, phase, PERIOD_MIN, PERIOD_MAX);
     public static final VariableWaveNeuron saw = SawWave.makeNeuron(period, phase, PERIOD_MIN, PERIOD_MAX);
     public static final VariableWaveNeuron square = SquareWave.makeNeuron(period, phase, PERIOD_MIN, PERIOD_MAX);
-    public static final StaticWaveNeuron outOfPhase = SawWave.makeNeuron(PERIOD_MIN, 0);
+    public static final StaticWaveProvider outOfPhase = SawWave.makeNeuron(PERIOD_MIN, 0);
 
     public static final List<Neuron> waves = List.of(sine, triangle, saw, square);
     //public static final List<Neuron> waves = List.of(sine, triangle, saw, square, outOfPhase); //for testing the neuralNet.test... make sure it catches an out of phase wave

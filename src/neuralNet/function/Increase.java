@@ -4,7 +4,7 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.StatelessFunction.roundClip;
+import static neuralNet.function.FunctionWithInputs.roundClip;
 
 /**
  * A hyperbolic curve function which causes most outputs to be considerably larger than the input.
@@ -14,23 +14,23 @@ import static neuralNet.function.StatelessFunction.roundClip;
  * the rounding required to fit the outputs into discrete integers causes some loss of precision
  * when used to invert one another.
  */
-public class Increase implements StatelessFunction {
+public class Increase implements FunctionWithInputs {
     public static final double NUMERATOR = 536870912; // 2 to the 29th power
     public static final double ADDEND = 40131.439945759589960864302279981; // sqrt(2^29 + 2^30) - 1
 
 
     public static final Increase instance = new Increase();
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron() {
-        return new CachingNeuronUsingStatelessFunction(instance);
+    public static CachingNeuronUsingFunction makeNeuron() {
+        return new CachingNeuronUsingFunction(instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingStatelessFunction(inputs, instance);
+    public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
+        return new CachingNeuronUsingFunction(inputs, instance);
     }
 
-    public static CachingNeuronUsingStatelessFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingStatelessFunction(List.of(input), instance);
+    public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
+        return new CachingNeuronUsingFunction(List.of(input), instance);
     }
 
     private Increase() { }

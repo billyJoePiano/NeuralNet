@@ -5,30 +5,10 @@ import neuralNet.util.*;
 import java.util.*;
 
 public interface Neuron extends SignalProvider, SignalConsumer {
-    /**
-     * Invoked by the neural net at the start of each round, before any outputs are requested,
-     * and AFTER any action resulting from the decision of the PREVIOUS round is already carried out.
-     *
-     * NOTE: implementations should take care to NOT invoke neuralNet.neuron.getOutput() of other neurons
-     * at this phase, because it is assumed this is where any cached outputs would either be outdated,
-     * or in the process of being cleaned up
-     */
-    default public void before() { }
-
-    /**
-     * Invoked by the neural net at the end of each round, after all needed outputs have already
-     * been requested and any decision signals have been read by the DecisionConsumer, but BEFORE
-     * any decisions are actually carried out.
-     */
-    default public void after() { }
-
-    public void reset();
-
     @Override //override from SignalProvider, to make the return type Neuron
     public Neuron clone();
 
-    public void replaceInputs(Map<SignalProvider, SignalProvider> neuronMap);
-    public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap);
+
 
     /**
      * Convenience method to be invoked by setInputs() to validate the list.  Should be followed
@@ -61,8 +41,8 @@ public interface Neuron extends SignalProvider, SignalConsumer {
     }
 
     /**
-     * To be invoked after validateInputs returns, and the new inputs list/view has already been
-     * assigned to the instance variable(s).
+     * Convenience method to be invoked by setInputs(), after validateInputs returns and the new
+     * inputs list/view has already been assigned to the instance variables.
      *
      * @param newInputs
      * @param oldInputs

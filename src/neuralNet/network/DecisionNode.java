@@ -40,13 +40,15 @@ public interface DecisionNode<C extends DecisionConsumer<C>,
         //seemingly random, especially with respect to the order in which objects were instantiated
         // (e.g. hashCode on its own may tend to get incrementally larger when many objects are created sequentially, depending on the JVM)
         // AND reproducible without needing to store the output
-        int myMask = Integer.reverse(this.getClass().hashCode())
+        int myMask =  Integer.reverse(this.hashCode())
+                    ^ Integer.reverse(this.getClass().hashCode())
                     ^ Integer.reverse(this.getNeuralNet().hashCode())
-                    ^ Integer.reverse(this.hashCode());
+                    ^ Integer.reverse((int)this.getNeuralNet().getRound());
 
-        int otherMask = Integer.reverse(other.getClass().hashCode())
+        int otherMask = Integer.reverse(other.hashCode())
+                    ^ Integer.reverse(other.getClass().hashCode())
                     ^ Integer.reverse(other.getNeuralNet().hashCode())
-                    ^ Integer.reverse(other.hashCode());
+                    ^ Integer.reverse((int)other.getNeuralNet().getRound());
 
         return myMask < otherMask ? -1 : 1;
     }

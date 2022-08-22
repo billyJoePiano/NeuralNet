@@ -1,13 +1,12 @@
 package neuralNet.function;
 
-import neuralNet.network.*;
 import neuralNet.neuron.*;
 
 public class SawWave implements WaveFunction {
     public static final SawWave instance = new SawWave();
 
-    public static StaticWaveNeuron makeNeuron(double period, double phase) {
-        return new StaticWaveNeuron(instance, period, phase);
+    public static StaticWaveProvider makeNeuron(double period, double phase) {
+        return new StaticWaveProvider(instance, period, phase);
     }
 
     public static VariableWaveNeuron makeNeuron(SignalProvider period, SignalProvider phase,
