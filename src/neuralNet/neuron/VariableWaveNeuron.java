@@ -4,7 +4,7 @@ import neuralNet.function.*;
 
 import java.util.*;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 import static neuralNet.neuron.StaticWaveProvider.*;
 
 /**
@@ -17,7 +17,7 @@ import static neuralNet.neuron.StaticWaveProvider.*;
  * While the phase-shift input impacts only the output of the current round, the period input determines the
  * output of the NEXT round, and therefore functions like a memory-neuralNet.neuron input.
  */
-public class VariableWaveNeuron extends CachingNeuron implements Mutatable<VariableWaveNeuron> {
+public class VariableWaveNeuron extends CachingNeuron implements Tweakable<VariableWaveNeuron> {
 
     public static final List<List<Param>> MUTATION_PARAMS_BOTH_POS = makeParams(true, true);
     public static final List<List<Param>> MUTATION_PARAMS_MIN_NEG = makeParams(false, true);

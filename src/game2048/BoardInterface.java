@@ -1,14 +1,19 @@
 package game2048;
 
+import net.openhft.affinity.*;
 import neuralNet.network.*;
-import neuralNet.neuron.*;
+import neuralNet.util.*;
 
 import java.util.*;
-import java.util.function.*;
+
+import static neuralNet.util.Util.*;
 
 public class BoardInterface extends Board implements
         Sensable<BoardInterface>,
         DecisionConsumer<BoardInterface, BoardInterface, BoardInterface.BoardNetFitness> {
+
+    public static final double MAX_SCORE = 262140;
+    public static final double GAMES_PER_TEST = 16;
 
     @Override
     public int decisionCount() {
@@ -32,54 +37,79 @@ public class BoardInterface extends Board implements
         if (usingInputs != null && (usingInputs.size() > 1 || usingInputs.get(0) != this)) throw new IllegalArgumentException();
 
         boardNet.setSensedObject(this);
-        this.reset();
+
+        double score = 0;
+        AccumulatedAverage timePerMove = new AccumulatedAverage();
+
+        try (AffinityLock af = AffinityLock.acquireCore()) {
+
+            for (int i = 0; i < GAMES_PER_TEST; i++) {
+                this.reset();
+                while (this.isActive()) {
+                    long start = System.nanoTime();
+                    this.runRound(boardNet);
+                    long end = System.nanoTime();
+                    timePerMove.add((end - start) / BILLION);
+                }
+                score += this.getScore();
+            }
+
+            return new BoardNetFitness(score / GAMES_PER_TEST, timePerMove.getAverage());
+        }
     }
 
     @Override
-    public int numOutputs() {
-        return 0;
+    public int getMaxNoOpRounds() {
+        return 32;
     }
 
     @Override
-    public void updateSensors() {
-
-    }
-
-    @Override
-    public void addSensor(SensorNode.Setter<O, ?> sensorSetter) throws IllegalStateException, NullPointerException {
-
-    }
-
-    @Override
-    public boolean removeSensor(SensorNode.Setter<O, ?> sensorSetter) throws IllegalStateException, NullPointerException {
-        return false;
-    }
-
-    @Override
-    public boolean findAndRemoveSensor(SensorNode<BoardInterface, ?> sensor) throws IllegalStateException, NullPointerException {
-        return false;
-    }
-
-    @Override
-    public Set<SensorNode.Setter<O, ?>> getSensorSetters(int outputId) {
-        return null;
-    }
-
-    @Override
-    public Map<Integer, Set<SensorNode.Setter<O, ?>>> getSensorSettersMap() {
-        return null;
-    }
-
-    @Override
-    public Set<SensorNode.Setter<O, ?>> getAllSensorSetters() {
-        return null;
+    public int numSensorNodesRequired() {
+        return 16;
     }
 
 
-    public class BoardNetFitness implements Fitness<BoardInterface, BoardNetFitness> {
+    public static class BoardNetFitness implements Fitness<BoardInterface, BoardNetFitness> {
+        public static final double TIME_PER_MOVE_THRESHOLD = 0.25; // if time per move is above this threshold, the score is negatively impacted
+        public static final double TIME_WEIGHTING = 0.25; // relative weight of the time-adjusted score vs. the raw score (where raw score is always weighted 1.0)
+        public static final double TOTAL_WEIGHTING = TIME_WEIGHTING + 1;
+
+        public final double avgScore;
+        public final double timePerMove;
+        public final double weightedScore;
+
+        private BoardNetFitness(final double avgScore, final double timePerMove) {
+            this.avgScore = avgScore;
+            this.timePerMove = timePerMove;
+
+            if (timePerMove > TIME_PER_MOVE_THRESHOLD) {
+                double diff = timePerMove - TIME_PER_MOVE_THRESHOLD;
+                this.weightedScore = (avgScore + TIME_WEIGHTING * (avgScore / (1 + diff))) / TOTAL_WEIGHTING;
+
+            } else {
+                this.weightedScore = avgScore;
+            }
+        }
+
+        public short getSignal() {
+            return clip(this.weightedScore * RANGE / MAX_SCORE);
+        }
 
         @Override
-        public int compareTo(BoardNetFitness boardNetFitness) {
+        public int compareTo(BoardNetFitness other) {
+            if (other == null) return -1;
+            if (other == this) return 0;
+
+            if (this.weightedScore > other.weightedScore) return -1;
+            if (this.weightedScore < other.weightedScore) return 1;
+
+            // for now... prioritize score over time
+            if (this.avgScore > other.avgScore) return -1;
+            if (this.avgScore < other.avgScore) return 1;
+
+            if (this.timePerMove < other.timePerMove) return -1;
+            if (this.timePerMove > other.timePerMove) return 1;
+
             return 0;
         }
     }

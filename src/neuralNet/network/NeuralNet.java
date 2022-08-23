@@ -14,9 +14,6 @@ public abstract class NeuralNet<S extends Sensable<S>,
     private S sensedObjected;
     private long round = 0;
 
-    public abstract List<SensorNode<S, N>> getSensors();
-    public abstract List<DecisionNode<N, C>> getDecisionNodes();
-
     protected NeuralNet() { }
 
     protected NeuralNet(Set<Neuron> neurons) throws IllegalStateException {
@@ -92,6 +89,12 @@ public abstract class NeuralNet<S extends Sensable<S>,
         }
     }
 
+    @Override
+    public abstract List<? extends SensorNode<S, N>> getSensors();
+
+    @Override
+    public abstract List<? extends DecisionNode<N, C>> getDecisionNodes();
+
     public long getRound() {
         return this.round;
     }
@@ -149,8 +152,8 @@ public abstract class NeuralNet<S extends Sensable<S>,
         this.neurons.add(neuron);
 
         for (SignalConsumer consumer : neuron.getConsumers()) {
-            if (consumer instanceof DecisionNode) {
-                DecisionProvider net = ((DecisionNode)consumer).getDecisionProvider();
+            if (consumer instanceof NeuralNet.Decision) {
+                DecisionProvider net = ((Decision)consumer).getDecisionProvider();
                 if (net != this && net != null) {
                     this.neurons.remove(neuron);
                     throw new IllegalStateException();
@@ -191,7 +194,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
     public Map<SignalProvider, SignalProvider> getSensorCloneMap(N clonedFrom) {
         Map<SignalProvider, SignalProvider> map = new HashMap<>();
 
-        for (Iterator<SensorNode<S, N>> orig = clonedFrom.getSensors().listIterator(),
+        for (Iterator<? extends SensorNode<S, N>> orig = clonedFrom.getSensors().listIterator(),
              mine = this.getSensors().listIterator();
              orig.hasNext();) {
 
@@ -217,9 +220,9 @@ public abstract class NeuralNet<S extends Sensable<S>,
     public Map<SignalConsumer, SignalConsumer> getDecisionCloneMap(N clonedFrom) {
         Map<SignalConsumer, SignalConsumer> map = new HashMap<>();
 
-        for (Iterator<DecisionNode<N, C>> orig = clonedFrom.getDecisionNodes().listIterator(),
-                                             mine = this.getDecisionNodes().listIterator();
-                orig.hasNext();) {
+        for (ListIterator<? extends DecisionNode<N, C>> orig = clonedFrom.getDecisionNodes().listIterator(),
+             mine = this.getDecisionNodes().listIterator();
+             orig.hasNext();) {
 
             map.put(orig.next(), mine.next());
         }
@@ -235,4 +238,87 @@ public abstract class NeuralNet<S extends Sensable<S>,
         return this.sensedObjected;
     }
 
+    protected abstract class Decision implements DecisionNode<N, C> {
+        private List<SignalProvider> inputs = new ArrayList<>(1);
+        private List<SignalProvider> inputsView = Collections.unmodifiableList(inputs);
+
+        @Override
+        public int getMinInputs() {
+            return 1;
+        }
+
+        @Override
+        public int getMaxInputs() {
+            return 1;
+        }
+
+        @Override
+        public N getDecisionProvider() {
+            return (N)NeuralNet.this;
+        }
+
+        @Override
+        public abstract int getDecisionId();
+
+        @Override
+        public List<SignalProvider> getInputs() {
+            return this.inputsView;
+        }
+
+        @Override
+        public void setInputs(List<SignalProvider> inputs) {
+            if (inputs.size() != 1) throw new IllegalArgumentException();
+            if (this.inputs.size() == 0) this.inputs.add(inputs.get(0));
+            else this.inputs.set(0, inputs.get(0));
+        }
+
+        @Override
+        public boolean replaceInput(SignalProvider oldProvider, SignalProvider newProvider) {
+            if (inputs.get(0) != oldProvider) return false;
+            inputs.set(0, newProvider);
+            return true;
+        }
+
+        @Override
+        public SignalProvider replaceInput(int index, SignalProvider newProvider) {
+            if (index != 0) throw new IndexOutOfBoundsException();
+
+            if (this.inputs.size() == 0) {
+                this.inputs.add(newProvider);
+                return null;
+            }
+
+            SignalProvider old = this.inputs.get(0);
+            this.inputs.set(0, newProvider);
+            return old;
+        }
+
+        @Override
+        public void replaceInputs(Map<SignalProvider, SignalProvider> replacements) throws IllegalStateException {
+            if (this.inputs.size() == 0) return;
+            SignalProvider orig = this.inputs.get(0);
+            SignalProvider replacement = replacements.get(orig);
+            if (replacement == null) {
+                replacement = orig.clone();
+                if (replacement == null) throw new IllegalStateException();
+                replacements.put(orig, replacement);
+            }
+            this.inputs.set(0, replacement);
+        }
+    }
+
+    private NoOp noOp;
+    protected NoOp getNoOp() {
+        if (this.noOp == null) this.noOp = new NoOp();
+        return this.noOp;
+    }
+
+    protected class NoOp extends Decision {
+        private NoOp() { }
+
+        @Override
+        public int getDecisionId() {
+            return -1;
+        }
+    }
 }

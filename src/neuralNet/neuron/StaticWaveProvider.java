@@ -4,7 +4,7 @@ import neuralNet.function.*;
 
 import java.util.*;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 import static neuralNet.util.Util.*;
 
 /**
@@ -12,7 +12,7 @@ import static neuralNet.util.Util.*;
  * (aka, where 2.0 represents a full sine-wave cycle) and a phase-shift
  * also expressed as coefficient of pi
  */
-public class StaticWaveProvider extends CachingProvider implements Mutatable<StaticWaveProvider> {
+public class StaticWaveProvider extends CachingProvider implements Tweakable<StaticWaveProvider> {
     public static final List<WaveFunction> WAVE_FUNCTIONS =
             List.of(SineWave.instance, TriangleWave.instance, SawWave.instance, SquareWave.instance);
 

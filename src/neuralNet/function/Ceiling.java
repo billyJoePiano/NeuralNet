@@ -4,9 +4,9 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 
-public class Ceiling implements Mutatable<Ceiling> {
+public class Ceiling implements Tweakable<Ceiling> {
     public final short ceiling;
     private List<Param> mutationParams;
 

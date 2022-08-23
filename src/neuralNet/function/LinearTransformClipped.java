@@ -4,10 +4,9 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.FunctionWithInputs.*;
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 
-public class LinearTransformClipped implements Mutatable<LinearTransformClipped> {
+public class LinearTransformClipped implements Tweakable<LinearTransformClipped> {
     public static final List<Param> POS_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT);
     public static final List<Param> NEG_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT);
 

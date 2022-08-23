@@ -3,7 +3,7 @@ package neuralNet.neuron;
 import java.util.*;
 
 import static neuralNet.function.FunctionWithInputs.roundClip;
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 
 /**
  * Memories may have a delay period with no signal strength, and then may fade into full strength.

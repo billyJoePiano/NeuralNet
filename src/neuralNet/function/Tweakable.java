@@ -4,7 +4,7 @@ import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public interface Mutatable<F extends Mutatable<F>> {
+public interface Tweakable<F extends Tweakable<F>> {
     public List<Param> getMutationParams();
     public F mutate(short[] params);
     public short[] getMutationParams(F toAchieve);

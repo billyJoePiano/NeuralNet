@@ -25,19 +25,29 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
             25058,      //32768
             28913,      //65536
             Short.MAX_VALUE     //131072
-    };
+        };
 
     private BoardInterface board;
-    public final List<Sensor> sensors = this.makeSensors();
 
-    private List<Sensor> makeSensors() {
-        List<Sensor> sensors = new ArrayList<>(16);
+    private final Sensor[][] matrix = makeSensors();
+    public final List<Sensor> sensors = List.of(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
+                                                matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3],
+                                                matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3],
+                                                matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]);
+
+
+    public final List<Decision> decisionNodes = List.of(new Up(), new Down(), new Left(), new Right(), this.getNoOp());
+
+    private Sensor[][] makeSensors() {
+        //List<Sensor> sensors = new ArrayList<>(16);
+        Sensor[][] matrix = new Sensor[4][4];
+
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                sensors.add(new Sensor(i, j));
+                matrix[i][j] = new Sensor(i, j);
             }
         }
-        return Collections.unmodifiableList(sensors);
+        return matrix;
     }
 
     @Override
@@ -51,13 +61,17 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
     }
 
     @Override
-    public List<SensorNode<BoardInterface, BoardNet>> getSensors() {
-        return null;
+    public List<Sensor> getSensors() {
+        return this.sensors;
     }
 
     @Override
-    public List<DecisionNode<BoardNet, BoardInterface>> getDecisionNodes() {
-        return null;
+    public List<Decision> getDecisionNodes() {
+        return this.decisionNodes;
+    }
+
+    public Sensor[][] getSensorMatrix() {
+        return this.matrix.clone();
     }
 
     public class Sensor extends CachingProvider implements SensorNode<BoardInterface, BoardNet> {
@@ -92,5 +106,39 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
         }
     }
 
-    //TODO decision nodes
+    public class Up extends Decision {
+        private Up() { }
+
+        @Override
+        public int getDecisionId() {
+            return 0;
+        }
+    }
+
+    public class Down extends Decision {
+        private Down() { }
+
+        @Override
+        public int getDecisionId() {
+            return 1;
+        }
+    }
+
+    public class Left extends Decision {
+        private Left() { }
+
+        @Override
+        public int getDecisionId() {
+            return 2;
+        }
+    }
+
+    public class Right extends Decision {
+        private Right() { }
+
+        @Override
+        public int getDecisionId() {
+            return 3;
+        }
+    }
 }

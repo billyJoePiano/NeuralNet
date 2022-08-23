@@ -4,9 +4,9 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 
-public class Floor implements Mutatable<Floor> {
+public class Floor implements Tweakable<Floor> {
     public final short floor;
     private List<Param> mutationParams;
 

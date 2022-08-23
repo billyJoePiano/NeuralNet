@@ -104,7 +104,7 @@ public class TestWave {
     private final Set<SignalProvider> allNeurons; // may include neurons which the wave neurons depend upon
     private Map<SignalProvider, Set<SignalProvider>> pairs;
 
-    public TestWave(List<SignalProvider> neurons) {
+    public TestWave(List<? extends SignalProvider> neurons) {
         this.waveNeurons = new ArrayList<>(neurons);
         this.allNeurons = new HashSet<>(neurons);
     }
@@ -237,10 +237,10 @@ public class TestWave {
 
     }
 
-    public synchronized void registerDependencies(List<Neuron> neurons) {
+    public synchronized void registerDependencies(List<SignalProvider> neurons) {
         this.allNeurons.addAll(neurons);
     }
-    public synchronized void registerDependencies(Neuron ... neurons) {
+    public synchronized void registerDependencies(SignalProvider ... neurons) {
         this.allNeurons.addAll(Arrays.asList(neurons));
     }
 

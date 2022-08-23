@@ -4,7 +4,7 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 
 public class LinearTransformCircular extends LinearTransformClipped {
     public LinearTransformCircular(double coefficient, double offset) {

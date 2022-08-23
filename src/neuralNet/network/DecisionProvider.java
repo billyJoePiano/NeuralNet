@@ -11,9 +11,9 @@ public interface DecisionProvider<S extends Sensable<S>,
     public S getSensedObject();
     public void setSensedObject(S sensedObject);
 
-    public List<SensorNode<S, P>> getSensors();
+    public List<? extends SensorNode<S, P>> getSensors();
     public List<SignalProvider> getNeurons();
-    public List<DecisionNode<P, C>> getDecisionNodes();
+    public List<? extends DecisionNode<P, C>> getDecisionNodes();
 
     public P clone(); // typically a DEEP clone of the neural network
 

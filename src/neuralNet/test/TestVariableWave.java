@@ -15,11 +15,11 @@ public class TestVariableWave {
 
     public static final int ROUNDS = ((int)Math.ceil(Math.abs(PERIOD_MAX)) + (int)Math.ceil(Math.abs(PERIOD_MIN))) * 256;
 
-    public static final Neuron periodRandom = RandomValue.makeNeuron();
+    public static final SignalProvider periodRandom = RandomValue.makeNeuron();
     public static final Neuron periodMemory = new ShortTermMemoryNeuron(periodRandom, 16);
     public static final Neuron periodAverage = Average.makeNeuron(periodMemory, periodRandom);
     public static final Neuron period = Widen.makeNeuron(periodAverage);
-    public static final Neuron phase = SineWave.makeNeuron(PERIOD_MAX * 256, 0);
+    public static final SignalProvider phase = SineWave.makeNeuron(PERIOD_MAX * 256, 0);
 
 
     public static final VariableWaveNeuron sine = SineWave.makeNeuron(period, phase, PERIOD_MIN, PERIOD_MAX);
@@ -30,7 +30,7 @@ public class TestVariableWave {
 
     public static final List<Neuron> waves = List.of(sine, triangle, saw, square);
     //public static final List<Neuron> waves = List.of(sine, triangle, saw, square, outOfPhase); //for testing the neuralNet.test... make sure it catches an out of phase wave
-    public static final List<Neuron> others = List.of(periodRandom, periodMemory, periodAverage, period, phase);
+    public static final List<SignalProvider> others = List.of(periodRandom, periodMemory, periodAverage, period, phase);
 
 
     public static void main(String[] args) {

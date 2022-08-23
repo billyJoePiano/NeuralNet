@@ -9,6 +9,7 @@ public class Board {
 
     private final byte[][] tiles = new byte[4][4];
     private boolean active = true;
+    private int rounds = 0;
 
     public static void main (String args[]) {
         Board board = new Board();
@@ -44,8 +45,8 @@ public class Board {
         return this.tiles.clone();
     }
 
-    public long getScore() {
-        long score = 0;
+    public int getScore() {
+        int score = 0;
         for (byte[] row : this.tiles) {
             for (byte tile : row) {
                 score += POW2[tile];
@@ -61,11 +62,15 @@ public class Board {
 
     public void reset() {
         this.active = true;
+        this.rounds = 0;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 this.tiles[i][j] = 0;
             }
         }
+
+        addTile((byte)16);
+        addTile((byte)15);
     }
 
     public String toString() {
@@ -180,14 +185,14 @@ public class Board {
             }
         }
 
-        if (numberOpen == ((byte)0) && checkLost()) {
-            this.active = false;
-
-        } else if (moved) {
+        if (moved) {
+            if (numberOpen == ((byte)0)) throw new IllegalStateException();
+            this.rounds++;
             addTile(numberOpen);
-        }
-
-        return moved;
+            if (numberOpen == ((byte)1)) this.active = !checkLost();
+            return true;
+            
+        } else return false;
     }
 
     public boolean down() {
@@ -229,14 +234,14 @@ public class Board {
             }
         }
 
-        if (numberOpen == ((byte)0) && checkLost()) {
-            this.active = true;
-
-        } else if (moved) {
+        if (moved) {
+            if (numberOpen == ((byte)0)) throw new IllegalStateException();
+            this.rounds++;
             addTile(numberOpen);
-        }
+            if (numberOpen == ((byte)1)) this.active = !checkLost();
+            return true;
 
-        return moved;
+        } else return false;
     }
 
     public boolean left() {
@@ -278,14 +283,14 @@ public class Board {
             }
         }
 
-        if (numberOpen == ((byte)0) && checkLost()) {
-            this.active = true;
-
-        } else if(moved) {
+        if (moved) {
+            if (numberOpen == ((byte)0)) throw new IllegalStateException();
+            this.rounds++;
             addTile(numberOpen);
-        }
+            if (numberOpen == ((byte)1)) this.active = !checkLost();
+            return true;
 
-        return moved;
+        } else return false;
     }
 
     public boolean right() {
@@ -327,14 +332,14 @@ public class Board {
             }
         }
 
-        if (numberOpen == ((byte)0) && checkLost()) {
-            this.active = true;
-
-        } else if (moved) {
+        if (moved) {
+            if (numberOpen == ((byte)0)) throw new IllegalStateException();
+            this.rounds++;
             addTile(numberOpen);
-        }
+            if (numberOpen == ((byte)1)) this.active = !checkLost();
+            return true;
 
-        return moved;
+        } else return false;
     }
 
     private void addTile(byte numberOpen) {

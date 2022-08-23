@@ -1,6 +1,6 @@
 package neuralNet.function;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 import static neuralNet.neuron.StaticWaveProvider.*;
 
 public interface WaveFunction {

@@ -4,9 +4,9 @@ import neuralNet.function.*;
 
 import java.util.*;
 
-import static neuralNet.function.Mutatable.*;
+import static neuralNet.function.Tweakable.*;
 
-public class FixedValueProvider implements SignalProvider, Mutatable<FixedValueProvider> {
+public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueProvider> {
     public final short output;
     private List<Param> mutationParams;
 

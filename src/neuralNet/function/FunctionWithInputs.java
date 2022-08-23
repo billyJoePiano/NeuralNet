@@ -11,6 +11,6 @@ public interface FunctionWithInputs {
 
     public short calcOutput(List<SignalProvider> inputs);
 
-    public interface Mutatable<M extends Mutatable<M>>
-            extends FunctionWithInputs, neuralNet.function.Mutatable<M> { }
+    public interface Tweakable<M extends Tweakable<M>>
+            extends FunctionWithInputs, neuralNet.function.Tweakable<M> { }
 }

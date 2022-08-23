@@ -32,6 +32,8 @@ public abstract class Util {
     public static final double PI = Math.PI;
     public static final double TWO_PI = Math.PI * 2;
 
+    public static final double BILLION = 1_000_000_000;
+
     /**
      * A true modulo operation (NOT a remainder) where all results are >= 0
      *
