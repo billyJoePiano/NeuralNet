@@ -26,7 +26,7 @@ public interface Neuron extends SignalProvider, SignalConsumer {
                 throw new IllegalArgumentException();
             }
 
-            return new ListWithView<SignalProvider>(new ArrayList<>());
+            return new ListWithView<>(new ArrayList<>());
         }
 
         ListWithView<SignalProvider> iwv = new ListWithView<>(new ArrayList<>(inputs));

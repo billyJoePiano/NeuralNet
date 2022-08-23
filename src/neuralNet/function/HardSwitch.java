@@ -3,6 +3,7 @@ package neuralNet.function;
 import neuralNet.neuron.*;
 
 import java.util.*;
+import static neuralNet.util.Util.*;
 
 public class HardSwitch implements FunctionWithInputs {
     public static final HardSwitch instance = new HardSwitch();
@@ -12,11 +13,11 @@ public class HardSwitch implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(Arrays.asList(inputs), instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     private HardSwitch() { }

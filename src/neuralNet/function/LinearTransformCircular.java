@@ -18,7 +18,7 @@ public class LinearTransformCircular extends LinearTransformClipped {
     }
 
     @Override
-    public LinearTransformCircular mutate(short[] params) {
+    public LinearTransformCircular tweak(short[] params) {
         return new LinearTransformCircular(
                 transformByMagnitudeAndSign(this.coefficient, params[0], params[1]),
                 this.offset + params[2]);

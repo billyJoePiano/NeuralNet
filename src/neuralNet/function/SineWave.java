@@ -2,7 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import static neuralNet.function.FunctionWithInputs.*;
+import static neuralNet.util.Util.*;
 
 public class SineWave implements WaveFunction {
     public static final double PI = Math.PI;

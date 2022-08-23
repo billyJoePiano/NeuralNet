@@ -2,8 +2,6 @@ package neuralNet.neuron;
 
 import neuralNet.function.*;
 
-import java.util.*;
-
 public class CachingProviderUsingFunction extends CachingProvider {
     public final FunctionNoInputs outputFunction;
 
@@ -31,7 +29,7 @@ public class CachingProviderUsingFunction extends CachingProvider {
 
 
     @Override
-    protected short calcOutput(List<SignalProvider> inputs) {
+    protected short calcOutput() {
         return this.outputFunction.calcOutput();
     }
 

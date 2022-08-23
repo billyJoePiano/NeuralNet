@@ -95,6 +95,9 @@ public abstract class NeuralNet<S extends Sensable<S>,
     @Override
     public abstract List<? extends DecisionNode<N, C>> getDecisionNodes();
 
+    @Override
+    public abstract N clone();
+
     public long getRound() {
         return this.round;
     }
@@ -314,7 +317,9 @@ public abstract class NeuralNet<S extends Sensable<S>,
     }
 
     protected class NoOp extends Decision {
-        private NoOp() { }
+        private NoOp() {
+            this.replaceInput(0, FixedValueProvider.MIN);
+        }
 
         @Override
         public int getDecisionId() {

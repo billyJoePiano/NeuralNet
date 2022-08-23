@@ -3,9 +3,6 @@ package neuralNet.neuron;
 import java.util.*;
 
 public abstract class CachingProvider implements SignalProvider {
-    private List<SignalProvider> inputs;
-    private List<SignalProvider> inputsView;
-
     private final Set<SignalConsumer> consumers = Collections.newSetFromMap(new WeakHashMap<>());
     private final Set<SignalConsumer> consumersView = Collections.unmodifiableSet(this.consumers);
 
@@ -24,17 +21,14 @@ public abstract class CachingProvider implements SignalProvider {
     }
 
     protected CachingProvider(CachingProvider cloneFrom, boolean cloneConsumers) {
-        if (cloneFrom.inputs != null) {
-            this.inputs = new ArrayList<>(cloneFrom.inputs);
-            this.inputsView = Collections.unmodifiableList(this.inputs);
-        }
-
         if (cloneConsumers) {
             this.consumers.addAll(cloneFrom.consumers);
         }
     }
 
-    protected abstract short calcOutput(List<SignalProvider> inputs);
+    protected abstract short calcOutput();
+
+    public abstract CachingProvider clone();
 
     @Override
     public void before() {
@@ -46,6 +40,7 @@ public abstract class CachingProvider implements SignalProvider {
         this.output = null;
     }
 
+    protected final Short getCache() { return this.output; }
     protected final void setCache(short value) {
         this.output = value;
     }
@@ -53,8 +48,7 @@ public abstract class CachingProvider implements SignalProvider {
     @Override
     public short getOutput() {
         if (this.output != null) return this.output;
-
-        return this.output = this.calcOutput(this.inputsView);
+        return this.output = this.calcOutput();
     }
 
     @Override

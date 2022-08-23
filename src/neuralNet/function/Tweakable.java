@@ -4,10 +4,18 @@ import java.util.*;
 
 import static neuralNet.util.Util.*;
 
+/**
+ * Tweakable is a generic interface that can applied to neurons, functions, or anything which can have its
+ * behavior "tweaked" according to a set of bounded parameters.  The tweak() method should return an identical
+ * clone of the original, except with the provided "tweaks" made.
+ *
+ *
+ * @param <F> the implementing class, which is able to be tweaked
+ */
 public interface Tweakable<F extends Tweakable<F>> {
-    public List<Param> getMutationParams();
-    public F mutate(short[] params);
-    public short[] getMutationParams(F toAchieve);
+    public List<Param> getTweakingParams();
+    public F tweak(short[] params);
+    public short[] getTweakingParams(F toAchieve);
 
 
 

@@ -18,6 +18,24 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
         super(cloneFrom, outputFunction);
     }
 
+    public CachingNeuronUsingTweakableFunction(FunctionWithInputs.Tweakable outputFunction)
+            throws NullPointerException {
+
+        super(outputFunction);
+    }
+
+    public CachingNeuronUsingTweakableFunction(FunctionWithInputs.Tweakable outputFunction,
+                                               List<SignalProvider> inputs)
+            throws NullPointerException {
+
+        super(outputFunction, inputs);
+    }
+
+    public CachingNeuronUsingTweakableFunction(FunctionWithInputs.Tweakable outputFunction,
+                                               SignalProvider... inputs) {
+        super(outputFunction, inputs);
+    }
+
     @Override
     protected short calcOutput(List<SignalProvider> inputs) {
         return this.outputFunction.calcOutput(inputs);
@@ -29,18 +47,18 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
     }
 
     @Override
-    public List<Param> getMutationParams() {
-        return ((Tweakable)this.outputFunction).getMutationParams();
+    public List<Param> getTweakingParams() {
+        return ((Tweakable)this.outputFunction).getTweakingParams();
     }
 
     @Override
-    public CachingNeuronUsingTweakableFunction mutate(short[] params) {
+    public CachingNeuronUsingTweakableFunction tweak(short[] params) {
         return new CachingNeuronUsingTweakableFunction(this,
-                ((FunctionWithInputs.Tweakable<? extends FunctionWithInputs.Tweakable>)this.outputFunction).mutate(params));
+                ((FunctionWithInputs.Tweakable<? extends FunctionWithInputs.Tweakable>)this.outputFunction).tweak(params));
     }
 
     @Override
-    public short[] getMutationParams(CachingNeuronUsingTweakableFunction toAchieve) {
+    public short[] getTweakingParams(CachingNeuronUsingTweakableFunction toAchieve) {
         return new short[0];
     }
 }

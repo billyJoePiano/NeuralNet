@@ -14,11 +14,11 @@ public class Narrow implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingFunction(Arrays.asList(input), instance);
+        return new CachingNeuronUsingFunction(instance, Arrays.asList(input));
     }
 
     private Narrow() { }

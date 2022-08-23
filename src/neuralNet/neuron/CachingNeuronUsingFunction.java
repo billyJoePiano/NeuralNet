@@ -25,7 +25,7 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
         this.outputFunction = outputFunction;
     }
 
-    public CachingNeuronUsingFunction(List<SignalProvider> inputs, FunctionWithInputs outputFunction)
+    public CachingNeuronUsingFunction(FunctionWithInputs outputFunction, List<SignalProvider> inputs)
             throws NullPointerException {
 
         super();
@@ -34,6 +34,10 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
 
         //Needs to be done AFTER this.outputFunction is set, so that getMinInputs and getMaxInputs don't throw null pointer
         this.setInputs(inputs);
+    }
+
+    public CachingNeuronUsingFunction(FunctionWithInputs outputFunction, SignalProvider ... inputs) {
+        this(outputFunction, Arrays.asList(inputs));
     }
 
     @Override

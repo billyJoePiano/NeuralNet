@@ -27,8 +27,6 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
             Short.MAX_VALUE     //131072
         };
 
-    private BoardInterface board;
-
     private final Sensor[][] matrix = makeSensors();
     public final List<Sensor> sensors = List.of(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
                                                 matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3],
@@ -84,8 +82,8 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
         }
 
         @Override
-        public BoardInterface getObservedObject() {
-            return BoardNet.this.board;
+        public BoardInterface getSensedObject() {
+            return BoardNet.this.getSensedObject();
         }
 
         @Override
@@ -95,13 +93,18 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
 
         @Override
         public void sense() {
-            this.setCache(NEURAL_OUTPUTS[BoardNet.this.board.getTile(this.row, this.col)]);
+            this.setCache(NEURAL_OUTPUTS[this.getSensedObject().getTile(this.row, this.col)]);
         }
 
         @Override
-        protected short calcOutput(List<SignalProvider> inputs) {
+        protected short calcOutput() {
             //sense() should always be called before this, therefore the cache should always be
             // already-populated when getOutput() is called, and this method should never be needed
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CachingProvider clone() throws UnsupportedOperationException {
             throw new UnsupportedOperationException();
         }
     }

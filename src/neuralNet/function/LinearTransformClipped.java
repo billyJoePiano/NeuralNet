@@ -5,8 +5,9 @@ import neuralNet.neuron.*;
 import java.util.*;
 
 import static neuralNet.function.Tweakable.*;
+import static neuralNet.util.Util.*;
 
-public class LinearTransformClipped implements Tweakable<LinearTransformClipped> {
+public class LinearTransformClipped implements FunctionWithInputs.Tweakable<LinearTransformClipped> {
     public static final List<Param> POS_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT);
     public static final List<Param> NEG_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT);
 
@@ -35,19 +36,19 @@ public class LinearTransformClipped implements Tweakable<LinearTransformClipped>
     }
 
     @Override
-    public List<Param> getMutationParams() {
+    public List<Param> getTweakingParams() {
         return coefficient > 0 ? POS_PARAMS : NEG_PARAMS;
     }
 
     @Override
-    public LinearTransformClipped mutate(short[] params) {
+    public LinearTransformClipped tweak(short[] params) {
         return new LinearTransformClipped(
                         transformByMagnitudeAndSign(this.coefficient, params[0], params[1]),
                                                     this.offset + params[2]);
     }
 
     @Override
-    public short[] getMutationParams(LinearTransformClipped toAchieve) {
+    public short[] getTweakingParams(LinearTransformClipped toAchieve) {
         short[] magnitudeParams = toAchieveByMagnitudeAndSign(this.coefficient, toAchieve.coefficient);
 
         double offsetDiff = Math.round(toAchieve.offset - this.offset);

@@ -1,9 +1,11 @@
 package neuralNet.neuron;
 
+import neuralNet.function.*;
+
 import java.util.*;
 
-import static neuralNet.function.FunctionWithInputs.roundClip;
 import static neuralNet.function.Tweakable.*;
+import static neuralNet.util.Util.*;
 
 /**
  * Memories may have a delay period with no signal strength, and then may fade into full strength.
@@ -11,7 +13,7 @@ import static neuralNet.function.Tweakable.*;
  * average
  *
  */
-public class LongTermMemoryNeuron extends CachingNeuron implements Mutatable<LongTermMemoryNeuron> {
+public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<LongTermMemoryNeuron> {
     public static final double NaN = Double.NaN;
 
     /**
@@ -388,7 +390,7 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Mutatable<Lon
     }
 
     @Override
-    public List<Param> getMutationParams() {
+    public List<Param> getTweakingParams() {
         if (this.mutationParams == null) {
             this.mutationParams = List.of(new Param(this.defaultVal),
                                     new Param((short) -this.delay, Short.MAX_VALUE),
@@ -399,12 +401,12 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Mutatable<Lon
     }
 
     @Override
-    public LongTermMemoryNeuron mutate(short[] params) {
+    public LongTermMemoryNeuron tweak(short[] params) {
         return new LongTermMemoryNeuron(this, (short)(this.defaultVal + params[2]), this.delay + params[0], this.fadeIn + params[1]);
     }
 
     @Override
-    public short[] getMutationParams(LongTermMemoryNeuron toAchieve) {
+    public short[] getTweakingParams(LongTermMemoryNeuron toAchieve) {
         return toAchieve(this.defaultVal, toAchieve.defaultVal, this.delay, toAchieve.delay, this.fadeIn, toAchieve.fadeIn);
     }
 }

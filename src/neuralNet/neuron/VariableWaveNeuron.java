@@ -6,6 +6,7 @@ import java.util.*;
 
 import static neuralNet.function.Tweakable.*;
 import static neuralNet.neuron.StaticWaveProvider.*;
+import static neuralNet.util.Util.*;
 
 /**
  * TODO: Write a neuralNet.test which verifies that all subclass implementations, when given the same period input,
@@ -330,7 +331,7 @@ public class VariableWaveNeuron extends CachingNeuron implements Tweakable<Varia
     }
 
     @Override
-    public List<Param> getMutationParams() {
+    public List<Param> getTweakingParams() {
         if (this.periodMin > 0)
             if (this.periodMax > 0) return MUTATION_PARAMS_BOTH_POS.get(this.waveFunction.getIndex());
             else                    return MUTATION_PARAMS_MAX_NEG.get(this.waveFunction.getIndex());
@@ -340,7 +341,7 @@ public class VariableWaveNeuron extends CachingNeuron implements Tweakable<Varia
     }
 
     @Override
-    public VariableWaveNeuron mutate(short[] params) {
+    public VariableWaveNeuron tweak(short[] params) {
         double periodMin = transformByMagnitudeAndSign(this.periodMin, params[0], params[1]);
         double periodMax = transformByMagnitudeAndSign(this.periodMax, params[2], params[3]);
 
@@ -348,7 +349,7 @@ public class VariableWaveNeuron extends CachingNeuron implements Tweakable<Varia
     }
 
     @Override
-    public short[] getMutationParams(VariableWaveNeuron toAchieve) {
+    public short[] getTweakingParams(VariableWaveNeuron toAchieve) {
         short[] params = toAchieveByMagnitudeAndSign(new short[5], this.periodMin, toAchieve.periodMin, this.periodMax, toAchieve.periodMax);
         params[4] = this.waveFunction.getMutationParam(toAchieve.waveFunction);
 

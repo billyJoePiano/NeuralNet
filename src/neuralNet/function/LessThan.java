@@ -15,11 +15,11 @@ public class LessThan implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingFunction(Arrays.asList(value, comparedTo), instance);
+        return new CachingNeuronUsingFunction(instance, Arrays.asList(value, comparedTo));
     }
 
     private LessThan() { }

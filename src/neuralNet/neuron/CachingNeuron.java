@@ -31,12 +31,19 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
         this.setInputs(inputs);
     }
 
+    protected abstract short calcOutput(List<SignalProvider> inputs);
+
     @Override
     public abstract CachingNeuron clone();
 
     @Override
     public List<SignalProvider> getInputs() {
         return this.inputsView;
+    }
+
+    @Override
+    protected final short calcOutput() {
+        return this.calcOutput(this.inputsView);
     }
 
     @Override

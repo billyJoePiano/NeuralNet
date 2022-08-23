@@ -22,11 +22,11 @@ public class NegateBalanced implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingFunction(List.of(input), instance);
+        return new CachingNeuronUsingFunction(instance, List.of(input));
     }
 
     private NegateBalanced() { }

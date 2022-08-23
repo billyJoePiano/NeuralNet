@@ -7,6 +7,10 @@ import java.util.*;
 import static neuralNet.function.Tweakable.*;
 
 public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueProvider> {
+    public static final FixedValueProvider MIN = new FixedValueProvider(Short.MIN_VALUE);
+    public static final FixedValueProvider MAX = new FixedValueProvider(Short.MAX_VALUE);
+    public static final FixedValueProvider ZERO = new FixedValueProvider((short)0);
+
     public final short output;
     private List<Param> mutationParams;
 
@@ -23,7 +27,7 @@ public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueP
     }
 
     @Override
-    public List<Param> getMutationParams() {
+    public List<Param> getTweakingParams() {
         if (this.mutationParams == null) {
             this.mutationParams = List.of(new Param(this.output));
         }
@@ -31,13 +35,13 @@ public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueP
     }
 
     @Override
-    public FixedValueProvider mutate(short[] params) {
+    public FixedValueProvider tweak(short[] params) {
         if (params[0] == 0) return this;
         return new FixedValueProvider((short)(this.output + params[0]));
     }
 
     @Override
-    public short[] getMutationParams(FixedValueProvider toAchieve) {
+    public short[] getTweakingParams(FixedValueProvider toAchieve) {
         return toAchieve(this.output, toAchieve.output);
     }
 

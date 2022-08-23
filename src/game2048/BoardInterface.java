@@ -51,9 +51,10 @@ public class BoardInterface extends Board implements
                     long end = System.nanoTime();
                     timePerMove.add((end - start) / BILLION);
                 }
+                System.out.println(this + "" + this.getScore() + "\n\n");
                 score += this.getScore();
             }
-
+            System.out.println(score / GAMES_PER_TEST);
             return new BoardNetFitness(score / GAMES_PER_TEST, timePerMove.getAverage());
         }
     }

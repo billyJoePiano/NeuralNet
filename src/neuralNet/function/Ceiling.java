@@ -6,7 +6,7 @@ import java.util.*;
 
 import static neuralNet.function.Tweakable.*;
 
-public class Ceiling implements Tweakable<Ceiling> {
+public class Ceiling implements FunctionWithInputs.Tweakable<Ceiling> {
     public final short ceiling;
     private List<Param> mutationParams;
 
@@ -31,7 +31,7 @@ public class Ceiling implements Tweakable<Ceiling> {
     }
 
     @Override
-    public List<Param> getMutationParams() {
+    public List<Param> getTweakingParams() {
         if (this.mutationParams == null) {
             this.mutationParams = List.of(new Param(this.ceiling));
         }
@@ -39,12 +39,12 @@ public class Ceiling implements Tweakable<Ceiling> {
     }
 
     @Override
-    public Ceiling mutate(short[] params) {
+    public Ceiling tweak(short[] params) {
         return new Ceiling((short)(this.ceiling + params[0]));
     }
 
     @Override
-    public short[] getMutationParams(Ceiling toAchieve) {
+    public short[] getTweakingParams(Ceiling toAchieve) {
         return toAchieve(this.ceiling, toAchieve.ceiling);
     }
 }

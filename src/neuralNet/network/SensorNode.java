@@ -7,7 +7,7 @@ public interface SensorNode<S extends Sensable<S>,
                         P extends DecisionProvider<S, P, ?>>
         extends SignalProvider {
 
-    public S getObservedObject();
+    public S getSensedObject();
     public P getDecisionProvider();
     public void sense();
 

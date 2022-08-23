@@ -27,7 +27,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
 
     public SwitchIterable(Neuron switchNeuron, short[] inputVals) {
         List<SignalProvider> inputs = new ArrayList(inputVals.length + 1);
-        inputs.add(0, new CachingNeuronUsingFunction(this::controlInput));
+        inputs.add(0, new CachingProviderUsingFunction(this::controlInput));
 
         for (short val : inputVals) {
             inputs.add(new FixedValueProvider(val));
@@ -38,7 +38,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     }
 
     public SwitchIterable(Neuron switchNeuron, List<SignalProvider> inputs) {
-        inputs.add(0, new CachingNeuronUsingFunction(this::controlInput));
+        inputs.add(0, new CachingProviderUsingFunction(this::controlInput));
         this.neuron = switchNeuron;
         switchNeuron.setInputs(inputs);;
     }
@@ -47,7 +47,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
         return this.i;
     }
 
-    private short controlInput(List<SignalProvider> signalProviders) {
+    private short controlInput() {
         return this.i;
     }
 
@@ -144,9 +144,26 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     }
 
     @Override
+    public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer) {
+        return false;
+    }
+
+    @Override
+    public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {
+
+    }
+
+    @Override
+    public void reset() {
+
+    }
+
+    /*
+    @Override
     public void clearConsumers() {
 
     }
+     */
 
     @Override
     public SignalProvider clone() {

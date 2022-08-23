@@ -136,7 +136,7 @@ public class StaticWaveProvider extends CachingProvider implements Tweakable<Sta
     }
 
     @Override
-    protected short calcOutput(List<SignalProvider> inputs) {
+    protected short calcOutput() {
         return roundClip(this.waveFunction.calc(this.currentPhase) * MAX_PLUS_ONE - 0.5);
     }
 
@@ -152,13 +152,13 @@ public class StaticWaveProvider extends CachingProvider implements Tweakable<Sta
     }
 
     @Override
-    public List<Param> getMutationParams() {
+    public List<Param> getTweakingParams() {
         if (this.sign) return MUTATION_PARAMS_POS.get(this.waveFunction.getIndex());
         else return MUTATION_PARAMS_NEG.get(this.waveFunction.getIndex());
     }
 
     @Override
-    public StaticWaveProvider mutate(short[] params) {
+    public StaticWaveProvider tweak(short[] params) {
         double period = transformByMagnitudeAndSign(this.period, params[0], params[1]);
         double phase = this.phase + (double)params[2] / MAX_PLUS_ONE;
 
@@ -166,7 +166,7 @@ public class StaticWaveProvider extends CachingProvider implements Tweakable<Sta
     }
 
     @Override
-    public short[] getMutationParams(StaticWaveProvider toAchieve) {
+    public short[] getTweakingParams(StaticWaveProvider toAchieve) {
         short[] params = toAchieveByMagnitudeAndSign(new short[4], this.period, toAchieve.period);
 
         params[2] = (short)Math.round((toAchieve.phase - this.phase) * MAX_PLUS_ONE);

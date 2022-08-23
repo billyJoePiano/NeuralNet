@@ -4,7 +4,7 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.FunctionWithInputs.*;
+import static neuralNet.util.Util.*;
 
 public class DifferenceClipped implements FunctionWithInputs {
     public static final DifferenceClipped instance = new DifferenceClipped();
@@ -14,11 +14,11 @@ public class DifferenceClipped implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingFunction(Arrays.asList(value, comparedTo), instance);
+        return new CachingNeuronUsingFunction(instance, Arrays.asList(value, comparedTo));
     }
 
     private DifferenceClipped() { }

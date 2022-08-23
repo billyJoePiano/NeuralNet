@@ -12,11 +12,11 @@ public class Closeness implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(Arrays.asList(inputs), instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     private Closeness() { }

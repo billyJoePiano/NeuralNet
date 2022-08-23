@@ -4,7 +4,7 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.FunctionWithInputs.*;
+import static neuralNet.util.Util.*;
 
 /**
  * Negates the input value, and clips input -32,768 into output 32,767.  Zero is mapped to itself.
@@ -21,11 +21,11 @@ public class NegateClipped implements FunctionWithInputs {
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(inputs, instance);
+        return new CachingNeuronUsingFunction(instance, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingFunction(List.of(input), instance);
+        return new CachingNeuronUsingFunction(instance, List.of(input));
     }
 
     private NegateClipped() { }
