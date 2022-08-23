@@ -11,6 +11,10 @@ public class LinearTransformClipped implements FunctionWithInputs.Tweakable<Line
     public static final List<Param> POS_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT);
     public static final List<Param> NEG_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT);
 
+    public static CachingNeuronUsingTweakableFunction makeNeuron(double coefficient, double offset) {
+        return new CachingNeuronUsingTweakableFunction(new LinearTransformClipped(coefficient, offset));
+    }
+
     public final double coefficient;
     public final double offset;
 

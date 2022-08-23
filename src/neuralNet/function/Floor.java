@@ -7,6 +7,10 @@ import java.util.*;
 import static neuralNet.function.Tweakable.*;
 
 public class Floor implements FunctionWithInputs.Tweakable<Floor> {
+    public static CachingNeuronUsingTweakableFunction makeNeuron(short floor) {
+        return new CachingNeuronUsingTweakableFunction(new Floor(floor));
+    }
+
     public final short floor;
     private List<Param> mutationParams;
 

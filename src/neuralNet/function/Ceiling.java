@@ -7,6 +7,10 @@ import java.util.*;
 import static neuralNet.function.Tweakable.*;
 
 public class Ceiling implements FunctionWithInputs.Tweakable<Ceiling> {
+    public static CachingNeuronUsingTweakableFunction makeNeuron(short ceiling) {
+        return new CachingNeuronUsingTweakableFunction(new Ceiling(ceiling));
+    }
+
     public final short ceiling;
     private List<Param> mutationParams;
 

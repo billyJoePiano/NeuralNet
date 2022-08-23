@@ -7,6 +7,10 @@ import java.util.*;
 import static neuralNet.function.Tweakable.*;
 
 public class LinearTransformCircular extends LinearTransformClipped {
+    public static CachingNeuronUsingTweakableFunction makeNeuron(double coefficient, double offset) {
+        return new CachingNeuronUsingTweakableFunction(new LinearTransformCircular(coefficient, offset));
+    }
+
     public LinearTransformCircular(double coefficient, double offset) {
         super(coefficient, offset);
     }
