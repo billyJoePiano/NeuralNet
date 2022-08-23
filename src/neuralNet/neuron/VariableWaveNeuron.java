@@ -155,6 +155,11 @@ public class VariableWaveNeuron extends CachingNeuron implements Tweakable<Varia
         return 2;
     }
 
+    @Override
+    public boolean inputOrderMatters() {
+        return true;
+    }
+
     public double getLastPeriod() {
         return this.lastPeriod;
     }

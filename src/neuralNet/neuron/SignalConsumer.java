@@ -10,6 +10,10 @@ public interface SignalConsumer {
         return 0;
     }
 
+    default public boolean inputOrderMatters() {
+        return false;
+    }
+
     public List<SignalProvider> getInputs();
     public void setInputs(List<SignalProvider> inputs);
 

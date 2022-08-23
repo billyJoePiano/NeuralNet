@@ -34,6 +34,11 @@ public class DifferenceClipped implements FunctionWithInputs {
     }
 
     @Override
+    public boolean inputOrderMatters() {
+        return true;
+    }
+
+    @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return clip((int)inputs.get(0).getOutput() - (int)inputs.get(1).getOutput());
     }

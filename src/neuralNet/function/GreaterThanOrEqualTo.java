@@ -35,6 +35,11 @@ public class GreaterThanOrEqualTo implements FunctionWithInputs {
     }
 
     @Override
+    public boolean inputOrderMatters() {
+        return true;
+    }
+
+    @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return inputs.get(0).getOutput() >= inputs.get(1).getOutput() ? Short.MAX_VALUE : Short.MIN_VALUE;
     }

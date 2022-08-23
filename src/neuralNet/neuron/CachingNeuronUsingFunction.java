@@ -51,6 +51,11 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
     }
 
     @Override
+    public boolean inputOrderMatters() {
+        return this.outputFunction.inputOrderMatters();
+    }
+
+    @Override
     protected short calcOutput(List<SignalProvider> inputs) {
         return this.outputFunction.calcOutput(inputs);
     }
