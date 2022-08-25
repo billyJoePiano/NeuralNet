@@ -1,18 +1,16 @@
 package neuralNet.neuron;
 
-import neuralNet.function.*;
-
 import java.util.*;
 
 import static neuralNet.function.Tweakable.*;
 
-public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueProvider> {
+public class FixedValueProvider implements SignalProvider.Tweakable<FixedValueProvider> {
     public static final FixedValueProvider MIN = new FixedValueProvider(Short.MIN_VALUE);
     public static final FixedValueProvider MAX = new FixedValueProvider(Short.MAX_VALUE);
     public static final FixedValueProvider ZERO = new FixedValueProvider((short)0);
 
     public final short output;
-    private List<Param> mutationParams;
+    private transient List<Param> tweakingParams;
 
     public FixedValueProvider() {
         this((short)0);
@@ -28,10 +26,10 @@ public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueP
 
     @Override
     public List<Param> getTweakingParams() {
-        if (this.mutationParams == null) {
-            this.mutationParams = List.of(new Param(this.output));
+        if (this.tweakingParams == null) {
+            this.tweakingParams = List.of(new Param(this.output));
         }
-        return this.mutationParams;
+        return this.tweakingParams;
     }
 
     @Override
@@ -81,5 +79,9 @@ public class FixedValueProvider implements SignalProvider, Tweakable<FixedValueP
 
     public int hashCode() {
         return this.output;
+    }
+
+    public String toString() {
+        return "FixedValue(" + this.output + ")";
     }
 }

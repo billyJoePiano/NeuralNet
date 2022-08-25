@@ -2,6 +2,8 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
+
 import static neuralNet.util.Util.*;
 
 public class TriangleWave implements WaveFunction {
@@ -32,5 +34,9 @@ public class TriangleWave implements WaveFunction {
 
         // https://handwiki.org/wiki/Triangle_wave
         return 2.0 * Math.abs(mod(phasePosition - 0.5, 2) - 1.0) - 1.0;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

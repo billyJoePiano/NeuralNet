@@ -1,11 +1,13 @@
 package neuralNet.network;
 
+import java.io.*;
 import java.util.*;
 import java.util.stream.*;
 
 public interface DecisionConsumer<S extends Sensable<S>,
                                     C extends DecisionConsumer<S, C, F>,
-                                    F extends Fitness<C, F>> {
+                                    F extends Fitness<C, F>>
+        extends Serializable {
 
     public int decisionCount();
 

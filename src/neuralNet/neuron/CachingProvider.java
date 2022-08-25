@@ -1,13 +1,23 @@
 package neuralNet.neuron;
 
+import java.io.*;
 import java.util.*;
 
 public abstract class CachingProvider implements SignalProvider {
-    private final Set<SignalConsumer> consumers = Collections.newSetFromMap(new WeakHashMap<>());
-    private final Set<SignalConsumer> consumersView = Collections.unmodifiableSet(this.consumers);
+    private transient Set<SignalConsumer> consumers = Collections.newSetFromMap(new WeakHashMap<>());
+    private transient Set<SignalConsumer> consumersView = Collections.unmodifiableSet(this.consumers);
 
+    private transient Short output;
 
-    private Short output;
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.writeObject(new ArrayList<>(consumers));
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        this.consumers = Collections.newSetFromMap(new WeakHashMap<>());
+        this.consumers.addAll((List<SignalConsumer>)stream.readObject());
+        this.consumersView = Collections.unmodifiableSet(this.consumers);
+    }
 
     /**
      * SHOULD ONLY BE INVOKED BY IMPLEMENTATIONS WHICH HAVE getMinInputs() == 0 !!!!
@@ -82,14 +92,14 @@ public abstract class CachingProvider implements SignalProvider {
 
     @Override
     public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {
-        Set<SignalConsumer> newConsumers = Collections.newSetFromMap(new HashMap<>(this.consumers.size()));
+        Set<SignalConsumer> newConsumers = new HashSet<>(this.consumers.size());
 
-        for (Iterator<SignalConsumer> iterator = this.consumers.iterator();
-                 iterator.hasNext();) {
-
-            SignalConsumer orig = iterator.next();
-            SignalConsumer replacement = neuronMap.get(iterator.next());
-            if (replacement == null) throw new IllegalStateException();
+        for (SignalConsumer orig : this.consumers) {
+            SignalConsumer replacement = neuronMap.get(orig);
+            if (replacement == null) {
+                System.err.println("UNEXPECTED: missing SignalConsumer replacement: " + orig);
+                //throw new IllegalStateException();
+            }
             newConsumers.add(replacement);
         }
 

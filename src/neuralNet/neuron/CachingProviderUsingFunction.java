@@ -39,7 +39,6 @@ public class CachingProviderUsingFunction extends CachingProvider {
     }
 
     public String toString() {
-         return /*this.getClass().getSimpleName() + "(" + */
-                 this.outputFunction.getClass().getSimpleName() + " : " + this.outputFunction /*+ ")"*/;
+         return this.outputFunction.getClass().getSimpleName();
     }
 }

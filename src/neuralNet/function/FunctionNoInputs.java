@@ -1,5 +1,7 @@
 package neuralNet.function;
 
-public interface FunctionNoInputs {
+import java.io.*;
+
+public interface FunctionNoInputs extends Serializable {
     public short calcOutput();
 }

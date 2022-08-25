@@ -2,6 +2,8 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
+
 import static neuralNet.util.Util.*;
 
 public class SquareWave implements WaveFunction {
@@ -29,5 +31,9 @@ public class SquareWave implements WaveFunction {
     @Override
     public double calc(double phasePosition) {
         return phasePosition < 1.0 ? Short.MAX_VALUE : Short.MIN_VALUE;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

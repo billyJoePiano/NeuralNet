@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class DifferenceCircular implements FunctionWithInputs {
@@ -39,5 +40,9 @@ public class DifferenceCircular implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return (short)((int)inputs.get(0).getOutput() - (int)inputs.get(1).getOutput());
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class Max implements FunctionWithInputs {
@@ -43,6 +44,10 @@ public class Max implements FunctionWithInputs {
         }
 
         return max;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }
 

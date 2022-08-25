@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class Closeness implements FunctionWithInputs {
@@ -48,5 +49,9 @@ public class Closeness implements FunctionWithInputs {
         }
 
         return (short)(Short.MAX_VALUE - max + min);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class AdditionCircular implements FunctionWithInputs {
@@ -40,5 +41,9 @@ public class AdditionCircular implements FunctionWithInputs {
         }
 
         return (short)sum;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

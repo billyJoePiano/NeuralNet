@@ -12,7 +12,7 @@ public class Floor implements FunctionWithInputs.Tweakable<Floor> {
     }
 
     public final short floor;
-    private List<Param> mutationParams;
+    private transient List<Param> tweakingParams;
 
     public Floor(short floor) {
         this.floor = floor;
@@ -36,10 +36,10 @@ public class Floor implements FunctionWithInputs.Tweakable<Floor> {
 
     @Override
     public List<Param> getTweakingParams() {
-        if (this.mutationParams == null) {
-            this.mutationParams = List.of(new Param(this.floor));
+        if (this.tweakingParams == null) {
+            this.tweakingParams = List.of(new Param(this.floor));
         }
-        return this.mutationParams;
+        return this.tweakingParams;
     }
 
     @Override

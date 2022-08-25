@@ -2,17 +2,19 @@ package neuralNet.network;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public interface DecisionProvider<S extends Sensable<S>,
                                     P extends DecisionProvider<S, P, C>,
-                                    C extends DecisionConsumer<S, C, ?>> {
+                                    C extends DecisionConsumer<S, C, ?>>
+        extends Serializable {
 
     public S getSensedObject();
     public void setSensedObject(S sensedObject);
 
     public List<? extends SensorNode<S, P>> getSensors();
-    public List<SignalProvider> getNeurons();
+    public Set<SignalProvider> getNeurons();
     public List<? extends DecisionNode<P, C>> getDecisionNodes();
 
     public P clone(); // typically a DEEP clone of the neural network

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class Min implements FunctionWithInputs {
@@ -43,6 +44,10 @@ public class Min implements FunctionWithInputs {
         }
 
         return min;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }
 

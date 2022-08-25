@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -42,5 +43,9 @@ public class AdditionClipped implements FunctionWithInputs {
         }
 
         return clip(sum);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

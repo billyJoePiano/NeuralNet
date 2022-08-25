@@ -1,7 +1,5 @@
 package neuralNet.neuron;
 
-import neuralNet.function.*;
-
 import java.util.*;
 
 import static neuralNet.function.Tweakable.*;
@@ -13,7 +11,9 @@ import static neuralNet.util.Util.*;
  * average
  *
  */
-public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<LongTermMemoryNeuron> {
+public class LongTermMemoryNeuron extends CachingNeuron
+        implements SignalProvider.Tweakable<LongTermMemoryNeuron> {
+
     public static final double NaN = Double.NaN;
 
     /**
@@ -55,7 +55,7 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<Lon
             NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN
         }; //NaN is marker for not initialized... like a primitive version of 'null', to avoid boxing/unboxing overhead
 
-    private List<Param> mutationParams;
+    private transient List<Param> tweakingParams;
 
     public LongTermMemoryNeuron(LongTermMemoryNeuron cloneFrom) {
         super(cloneFrom);
@@ -65,7 +65,7 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<Lon
         this.fadeIn = cloneFrom.fadeIn;
         this.fadeInPlusOne = cloneFrom.fadeInPlusOne;
         this.fadeInPlusAddToStoreTotalWeight = cloneFrom.fadeInPlusAddToStoreTotalWeight;
-        this.mutationParams = cloneFrom.mutationParams;
+        this.tweakingParams = cloneFrom.tweakingParams;
 
         if (delay == 0 && fadeIn == 0) this.recent = null;
         else this.recent = new double[delay + fadeIn];
@@ -96,6 +96,27 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<Lon
             throws IllegalArgumentException {
 
         this(input, (short)0, delayAndFadeIn, delayAndFadeIn);
+    }
+
+    public LongTermMemoryNeuron(short defaultVal, int delay, int fadeIn)
+            throws IllegalArgumentException {
+
+        super();
+
+        if (delay < 0) throw new IllegalArgumentException("LongTermMemory delay must be 0 or greater");
+        if (fadeIn < 0) throw new IllegalArgumentException("LongTermMemory fadeIn must be 0 or greater");
+
+        this.defaultVal = defaultVal;
+        this.nextOutput = defaultVal;
+        this.delay = delay;
+        this.delayDbl = delay;
+        this.fadeIn = fadeIn;
+        this.fadeInPlusOne = fadeIn + 1;
+        this.fadeInPlusAddToStoreTotalWeight = this.fadeInPlusOne * (this.fadeInPlusOne + 1) / 2;
+        // NOTE: x * (x + 1) / 2 is the formula for the sum of all integers between 1 and x (inclusive)
+
+        if (delay == 0 && fadeIn == 0) this.recent = null;
+        else this.recent = new double[delay + fadeIn];
     }
 
     public LongTermMemoryNeuron(List<SignalProvider> input, short defaultVal, int delay, int fadeIn)
@@ -391,13 +412,13 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<Lon
 
     @Override
     public List<Param> getTweakingParams() {
-        if (this.mutationParams == null) {
-            this.mutationParams = List.of(new Param(this.defaultVal),
+        if (this.tweakingParams == null) {
+            this.tweakingParams = List.of(new Param(this.defaultVal),
                                     new Param((short) -this.delay, Short.MAX_VALUE),
                                     new Param((short) -this.fadeIn, Short.MAX_VALUE));
         }
 
-        return this.mutationParams;
+        return this.tweakingParams;
     }
 
     @Override
@@ -408,5 +429,9 @@ public class LongTermMemoryNeuron extends CachingNeuron implements Tweakable<Lon
     @Override
     public short[] getTweakingParams(LongTermMemoryNeuron toAchieve) {
         return toAchieve(this.defaultVal, toAchieve.defaultVal, this.delay, toAchieve.delay, this.fadeIn, toAchieve.fadeIn);
+    }
+
+    public String toString() {
+        return "LongTermMemory(" + this.defaultVal + ", " + this.delay + ", " + this.fadeIn + ")";
     }
 }

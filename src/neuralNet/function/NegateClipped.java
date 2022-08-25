@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -9,7 +10,7 @@ import static neuralNet.util.Util.*;
 /**
  * Negates the input value, and clips input -32,768 into output 32,767.  Zero is mapped to itself.
  * Note that there is NOT a perfect 1-to-1 mapping of negative values to positive values because of
- * this artifacts.  For a true 1-to-1 mapping, use NegateBalanced
+ * these artifacts.  For a true 1-to-1 mapping, use NegateBalanced
  *
  * This function is the inverse of itself for all inputs EXCEPT -32,768
  */
@@ -43,5 +44,9 @@ public class NegateClipped implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return clip(-(int)inputs.get(0).getOutput());
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

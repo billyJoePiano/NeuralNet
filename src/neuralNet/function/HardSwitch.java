@@ -2,7 +2,9 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
+
 import static neuralNet.util.Util.*;
 
 public class HardSwitch implements FunctionWithInputs {
@@ -49,5 +51,9 @@ public class HardSwitch implements FunctionWithInputs {
         else if (index < 1) index = 1;
 
         return inputs.get(index).getOutput();
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

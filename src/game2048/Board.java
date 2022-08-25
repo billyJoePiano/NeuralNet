@@ -10,6 +10,7 @@ public class Board {
     private final byte[][] tiles = new byte[4][4];
     private boolean active = true;
     private int rounds = 0;
+    private int score = 0;
 
     public static void main (String args[]) {
         Board board = new Board();
@@ -46,6 +47,8 @@ public class Board {
     }
 
     public int getScore() {
+        return this.score;
+        /*
         int score = 0;
         for (byte[] row : this.tiles) {
             for (byte tile : row) {
@@ -54,6 +57,7 @@ public class Board {
         }
 
         return score;
+         */
     }
 
     public boolean isActive() {
@@ -63,6 +67,8 @@ public class Board {
     public void reset() {
         this.active = true;
         this.rounds = 0;
+        this.score = 0;
+
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 this.tiles[i][j] = 0;
@@ -173,8 +179,9 @@ public class Board {
 
                 for (int o = i + 1; o < 4; o++) {
                     if (this.tiles[o][j] == this.tiles[i][j]) {
-                         this.tiles[i][j]++;
+                        this.tiles[i][j]++;
                         this.tiles[o][j] = 0;
+                        this.score += POW2[this.tiles[i][j]];
                         moved = true;
                         break;
 
@@ -224,6 +231,7 @@ public class Board {
                     if (this.tiles[o][j] == this.tiles[i][j]) {
                         this.tiles[i][j]++;
                         this.tiles[o][j] = 0;
+                        this.score += POW2[this.tiles[i][j]];
                         moved = true;
                         break;
 
@@ -273,6 +281,7 @@ public class Board {
                     if (this.tiles[j][o] == this.tiles[j][i]) {
                         this.tiles[j][i]++;
                         this.tiles[j][o] = 0;
+                        this.score += POW2[this.tiles[j][i]];
                         moved = true;
                         break;
 
@@ -322,6 +331,7 @@ public class Board {
                     if (this.tiles[j][o] == this.tiles[j][i]) {
                         this.tiles[j][i]++;
                         this.tiles[j][o] = 0;
+                        this.score += POW2[this.tiles[j][i]];
                         moved = true;
                         break;
 

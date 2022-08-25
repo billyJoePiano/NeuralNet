@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -41,5 +42,9 @@ public class DifferenceClipped implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return clip((int)inputs.get(0).getOutput() - (int)inputs.get(1).getOutput());
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

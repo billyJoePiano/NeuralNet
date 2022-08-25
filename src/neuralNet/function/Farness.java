@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class Farness implements FunctionWithInputs {
@@ -48,6 +49,10 @@ public class Farness implements FunctionWithInputs {
         }
 
         return (short)(max - min + Short.MIN_VALUE);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }
 

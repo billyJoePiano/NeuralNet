@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -44,5 +45,9 @@ public class NegateBalanced implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return (short) -(((int)inputs.get(0).getOutput()) + 1);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

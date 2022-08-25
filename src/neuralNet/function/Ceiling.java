@@ -12,7 +12,7 @@ public class Ceiling implements FunctionWithInputs.Tweakable<Ceiling> {
     }
 
     public final short ceiling;
-    private List<Param> mutationParams;
+    private transient List<Param> tweakingParams;
 
     public Ceiling(short ceiling) {
         this.ceiling = ceiling;
@@ -36,10 +36,10 @@ public class Ceiling implements FunctionWithInputs.Tweakable<Ceiling> {
 
     @Override
     public List<Param> getTweakingParams() {
-        if (this.mutationParams == null) {
-            this.mutationParams = List.of(new Param(this.ceiling));
+        if (this.tweakingParams == null) {
+            this.tweakingParams = List.of(new Param(this.ceiling));
         }
-        return this.mutationParams;
+        return this.tweakingParams;
     }
 
     @Override

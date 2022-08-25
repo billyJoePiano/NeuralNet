@@ -1,6 +1,5 @@
 package game2048;
 
-import net.openhft.affinity.*;
 import neuralNet.network.*;
 import neuralNet.util.*;
 
@@ -13,7 +12,7 @@ public class BoardInterface extends Board implements
         DecisionConsumer<BoardInterface, BoardInterface, BoardInterface.BoardNetFitness> {
 
     public static final double MAX_SCORE = 262140;
-    public static final double GAMES_PER_TEST = 16;
+    public static final int GAMES_PER_TEST = 256;
 
     @Override
     public int decisionCount() {
@@ -38,25 +37,40 @@ public class BoardInterface extends Board implements
 
         boardNet.setSensedObject(this);
 
-        double score = 0;
+        double arthMean = 0;
+        double geoMean = 0;
+        int[] scores = new int[GAMES_PER_TEST];
         AccumulatedAverage timePerMove = new AccumulatedAverage();
 
-        try (AffinityLock af = AffinityLock.acquireCore()) {
+        //try (AffinityLock af = AffinityLock.acquireCore()) {
 
             for (int i = 0; i < GAMES_PER_TEST; i++) {
                 this.reset();
+                boardNet.reset();
                 while (this.isActive()) {
                     long start = System.nanoTime();
                     this.runRound(boardNet);
                     long end = System.nanoTime();
                     timePerMove.add((end - start) / BILLION);
                 }
-                System.out.println(this + "" + this.getScore() + "\n\n");
-                score += this.getScore();
+                //System.out.println(this + "" + this.getScore() + "\n\n");
+                int score = this.getScore();
+                arthMean += score;
+                geoMean += Math.log(score);
+                scores[i] = score;
             }
-            System.out.println(score / GAMES_PER_TEST);
-            return new BoardNetFitness(score / GAMES_PER_TEST, timePerMove.getAverage());
-        }
+
+            arthMean /= GAMES_PER_TEST;
+            geoMean = Math.exp(geoMean / GAMES_PER_TEST);
+
+            Arrays.sort(scores);
+            double median;
+            if (GAMES_PER_TEST % 2 == 1) median = scores[GAMES_PER_TEST / 2];
+            else median = (double)(scores[GAMES_PER_TEST / 2 - 1] + scores[GAMES_PER_TEST / 2]) / 2;
+
+            return new BoardNetFitness(scores[0], scores[GAMES_PER_TEST - 1],
+                    arthMean, geoMean, median, timePerMove.getAverage());
+        //}
     }
 
     @Override
@@ -75,20 +89,40 @@ public class BoardInterface extends Board implements
         public static final double TIME_WEIGHTING = 0.25; // relative weight of the time-adjusted score vs. the raw score (where raw score is always weighted 1.0)
         public static final double TOTAL_WEIGHTING = TIME_WEIGHTING + 1;
 
-        public final double avgScore;
+        public final int min;
+        public final int max;
+        public final double arthMean;
+        public final double geoMean;
+        public final double median;
+        public final double minMaxGeo;
+
+        public final double composite; // doesn't account for timePerMove
         public final double timePerMove;
         public final double weightedScore;
 
-        private BoardNetFitness(final double avgScore, final double timePerMove) {
-            this.avgScore = avgScore;
+        private BoardNetFitness(final int min, final int max, final double arthMean, final double geoMean, final double median,
+                                final double timePerMove) {
+            this.min = min;
+            this.max = max;
+            this.minMaxGeo = Math.sqrt((double)min * (double)max);
+
+            this.arthMean = arthMean;
+            this.geoMean = geoMean;
+            this.median = median;
+
+            double minMetric = Util.min(arthMean, geoMean, median, minMaxGeo);
+            double composite = Math.sqrt(Math.sqrt(arthMean * geoMean) * Math.sqrt(median * this.minMaxGeo)); //geomean of the four score metrics
+            this.composite = Math.sqrt(minMetric * composite); //geoMean with the smallest of the four metrics
+
+
             this.timePerMove = timePerMove;
 
             if (timePerMove > TIME_PER_MOVE_THRESHOLD) {
                 double diff = timePerMove - TIME_PER_MOVE_THRESHOLD;
-                this.weightedScore = (avgScore + TIME_WEIGHTING * (avgScore / (1 + diff))) / TOTAL_WEIGHTING;
+                this.weightedScore = (this.composite + TIME_WEIGHTING * (this.composite / (1 + diff))) / TOTAL_WEIGHTING;
 
             } else {
-                this.weightedScore = avgScore;
+                this.weightedScore = this.composite;
             }
         }
 
@@ -105,178 +139,24 @@ public class BoardInterface extends Board implements
             if (this.weightedScore < other.weightedScore) return 1;
 
             // for now... prioritize score over time
-            if (this.avgScore > other.avgScore) return -1;
-            if (this.avgScore < other.avgScore) return 1;
+            if (this.composite > other.composite) return -1;
+            if (this.composite < other.composite) return 1;
 
             if (this.timePerMove < other.timePerMove) return -1;
             if (this.timePerMove > other.timePerMove) return 1;
 
             return 0;
         }
-    }
 
-    /*
-    private SignalProvider up;
-    private SignalProvider down;
-    private SignalProvider left;
-    private SignalProvider right;
-
-    private final Set<Sensor> sensors = makeSensors();
-
-    private Set<Sensor> makeSensors() {
-        Set<Sensor> sensors = new HashSet<>();
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                sensors.add(new Sensor(i, j));
-            }
-        }
-        return Collections.unmodifiableSet(sensors);
-    }
-
-    public BoardInterface(Board board,
-                          SignalProvider up,
-                          SignalProvider down,
-                          SignalProvider left,
-                          SignalProvider right)
-            throws NullPointerException {
-
-        if (board == null || up == null || down == null || left == null || right == null) {
-            throw new NullPointerException();
-        }
-
-        setBoard(board);
-
-        this.up = up;
-        this.down = down;
-        this.left = left;
-        this.right = right;
-    }
-
-
-    public Board getBoard() {
-        return board;
-    }
-
-    public void setBoard(Board board) throws NullPointerException {
-        if (board == null) throw new NullPointerException();
-        if (this.board != null) {
-            for (Sensor sensor : sensors) {
-                board.removeSensor(sensor.current);
-            }
-        }
-
-        this.board = board;
-
-        for (Sensor sensor : sensors) {
-            board.addSensor(sensor.newSetter());
+        public String toString() {
+            return this.getClass().getSimpleName()
+                    + "\t\tMean: " + this.arthMean
+                    + "\t\tGeoMean: " + this.geoMean
+                    + "\t\tMedian: " + this.median
+                    + "\t\tMinMaxGeo: " + this.minMaxGeo
+                    + "\n\t\t\t\tComposite: " + this.composite
+                    + "\t\tTime Per Move: " + this.timePerMove
+                    + "\t\tWeighted Score: " + this.weightedScore;
         }
     }
-
-
-    public SignalProvider getUp() {
-        return up;
-    }
-
-    public void setUp(SignalProvider up) throws NullPointerException {
-        if (up == null) throw new NullPointerException();
-        this.up = up;
-    }
-
-    public SignalProvider getDown() {
-        return down;
-    }
-
-    public void setDown(SignalProvider down) {
-        if (down == null) throw new NullPointerException();
-        this.down = down;
-    }
-
-    public SignalProvider getLeft() {
-        return left;
-    }
-
-    public void setLeft(SignalProvider left) throws NullPointerException {
-        if (left == null) throw new NullPointerException();
-        this.left = left;
-    }
-
-    public SignalProvider getRight() {
-        return right;
-    }
-
-    public void setRight(SignalProvider right) throws NullPointerException {
-        if (right == null) throw new NullPointerException();
-        this.right = right;
-    }
-
-    public boolean makeMove() {
-        /*
-        this.up.clearCache();
-        this.down.clearCache();
-        this.left.clearCache();
-        this.right.clearCache();
-
-         *//*
-
-        List<Decision> decisions = new ArrayList<>();
-
-        decisions.add(new Decision(this.board::up, this.up.getOutput()));
-        decisions.add(new Decision(this.board::down, this.down.getOutput()));
-        decisions.add(new Decision(this.board::left, this.left.getOutput()));
-        decisions.add(new Decision(this.board::right, this.right.getOutput()));
-
-        Collections.sort(decisions);
-
-        for (Decision decision : decisions) {
-            if (decision.action.get()) return true;
-        }
-        return false;
-    }
-
-    @Override
-    public Set<Sensor> getSensors() {
-        return this.sensors;
-    }
-
-    @Override
-    public void setSensedObject(Board board) {
-        this.setBoard(board);
-    }
-
-    @Override
-    public Board getSensedObject() {
-        return null;
-    }
-
-    @Override
-    public List<DecisionNode<Board, ?, BoardNet>> getDecisionNodes() {
-        return null;
-    }
-
-
-
-
-    private class Decision implements Comparable<Decision> {
-        private final Supplier<Boolean> action;
-        private final short weight;
-        private Double rand; // for rare cases where two Decisions have the same weight
-
-        private Decision(Supplier<Boolean> action, short weight) {
-            this.action = action;
-            this.weight = weight;
-        }
-
-        @Override
-        public int compareTo(Decision other) {
-            if (other == this) return 0;
-            else if (this.weight > other.weight) return -1;
-            else if (other.weight < this.weight) return 1;
-
-            if (this.rand == null) this.rand = Math.random();
-            if (other.rand == null) other.rand = Math.random();
-
-            return this.rand < other.rand ? -1 : 1;
-        }
-    }
-    */
 }

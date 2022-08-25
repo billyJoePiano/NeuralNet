@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -42,5 +43,9 @@ public class LessThanOrEqualTo implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return inputs.get(0).getOutput() <= inputs.get(1).getOutput() ? Short.MAX_VALUE : Short.MIN_VALUE;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

@@ -12,7 +12,7 @@ import static neuralNet.util.Util.*;
  * (aka, where 2.0 represents a full sine-wave cycle) and a phase-shift
  * also expressed as coefficient of pi
  */
-public class StaticWaveProvider extends CachingProvider implements Tweakable<StaticWaveProvider> {
+public class StaticWaveProvider extends CachingProvider implements SignalProvider.Tweakable<StaticWaveProvider> {
     public static final List<WaveFunction> WAVE_FUNCTIONS =
             List.of(SineWave.instance, TriangleWave.instance, SawWave.instance, SquareWave.instance);
 
@@ -20,16 +20,16 @@ public class StaticWaveProvider extends CachingProvider implements Tweakable<Sta
             List.of(new Param(0, 3), new Param(-1, 2), new Param(-2, 1), new Param(-3, 0));
 
     public static final List<List<Param>> MUTATION_PARAMS_POS = List.of(
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT, SineWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT, TriangleWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT, SawWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT, SquareWave.instance.getMutationParam()));
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SineWave.instance.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, TriangleWave.instance.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SawWave.instance.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SquareWave.instance.getMutationParam()));
 
     public static final List<List<Param>> MUTATION_PARAMS_NEG = List.of(
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT, SineWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT, TriangleWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT, SawWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT, SquareWave.instance.getMutationParam()));
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SineWave.instance.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, TriangleWave.instance.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SawWave.instance.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SquareWave.instance.getMutationParam()));
 
 
     public final WaveFunction waveFunction;

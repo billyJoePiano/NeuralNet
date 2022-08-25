@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -47,5 +48,9 @@ public class Average implements FunctionWithInputs {
         }
 
         return roundClip((double)sum / count);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

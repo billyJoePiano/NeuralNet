@@ -2,7 +2,9 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
+
 import static neuralNet.util.Util.*;
 
 public class Equals implements FunctionWithInputs {
@@ -54,5 +56,9 @@ public class Equals implements FunctionWithInputs {
         }
 
         return (short)(((double)(maxCount - 1) / (double)(size - 1)) * RANGE_INT + Short.MIN_VALUE);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

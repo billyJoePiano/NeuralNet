@@ -2,6 +2,8 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
+
 import static neuralNet.util.Util.*;
 
 public class SineWave implements WaveFunction {
@@ -30,5 +32,9 @@ public class SineWave implements WaveFunction {
     public double calc(double phasePosition) {
         if (phasePosition == 1.0) return NEGATIVE_ONE;
         else return Math.sin(phasePosition * PI);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

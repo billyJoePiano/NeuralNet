@@ -36,6 +36,16 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
 
     public final List<Decision> decisionNodes = List.of(new Up(), new Down(), new Left(), new Right(), this.getNoOp());
 
+    public BoardNet() { }
+
+    public BoardNet(BoardNet cloneFrom) {
+        super(cloneFrom);
+    }
+
+    public BoardNet(BoardNet cloneFrom, Map<SignalProvider, SignalProvider> substitutions) {
+        super(cloneFrom, substitutions);
+    }
+
     private Sensor[][] makeSensors() {
         //List<Sensor> sensors = new ArrayList<>(16);
         Sensor[][] matrix = new Sensor[4][4];
@@ -49,13 +59,13 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
     }
 
     @Override
-    public List<SignalProvider> getNeurons() {
-        return null;
+    public BoardNet clone() {
+        return new BoardNet(this);
     }
 
     @Override
-    public BoardNet clone() {
-        return null;
+    public BoardNet cloneWith(Map<SignalProvider, SignalProvider> substitutions) {
+        return new BoardNet(this, substitutions);
     }
 
     @Override

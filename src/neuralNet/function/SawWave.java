@@ -2,6 +2,8 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
+
 public class SawWave implements WaveFunction {
     public static final SawWave instance = new SawWave();
 
@@ -27,5 +29,9 @@ public class SawWave implements WaveFunction {
         } else {
             return phasePosition - 2.0;
         }
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

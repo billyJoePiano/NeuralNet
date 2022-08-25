@@ -1,8 +1,9 @@
 package neuralNet.neuron;
 
+import java.io.*;
 import java.util.*;
 
-public interface SignalProvider {
+public interface SignalProvider extends Serializable {
     public short getOutput();
 
     public Set<SignalConsumer> getConsumers();
@@ -55,4 +56,8 @@ public interface SignalProvider {
     public void reset();
 
     public SignalProvider clone();
+
+    public interface Tweakable<P extends SignalProvider.Tweakable<P>>
+                    extends SignalProvider, neuralNet.function.Tweakable<P> {
+    }
 }

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.concurrent.*;
 
 public class RandomValue implements FunctionNoInputs {
@@ -19,5 +20,9 @@ public class RandomValue implements FunctionNoInputs {
     @Override
     public short calcOutput() {
         return (short)ThreadLocalRandom.current().nextInt(ORIGIN, BOUND);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

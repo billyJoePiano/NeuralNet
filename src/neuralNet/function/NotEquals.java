@@ -2,7 +2,9 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
+
 import static neuralNet.util.Util.*;
 
 public class NotEquals implements FunctionWithInputs {
@@ -54,6 +56,10 @@ public class NotEquals implements FunctionWithInputs {
         }
 
         return (short)(Short.MAX_VALUE - ((double)(maxCount - 1) / (size - 1)) * RANGE_INT);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }
 

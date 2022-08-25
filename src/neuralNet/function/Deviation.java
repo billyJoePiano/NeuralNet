@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -60,4 +61,7 @@ public class Deviation implements FunctionWithInputs {
         return roundClip(Math.sqrt(sumSq / count) * 2 + Short.MIN_VALUE);
     }
 
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
+    }
 }

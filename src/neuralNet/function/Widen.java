@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 public class Widen implements FunctionWithInputs {
@@ -50,5 +51,9 @@ public class Widen implements FunctionWithInputs {
             if (result <= Short.MIN_VALUE) return Short.MIN_VALUE;
             else return (short)result;
         }
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

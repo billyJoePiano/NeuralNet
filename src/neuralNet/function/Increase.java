@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -56,5 +57,9 @@ public class Increase implements FunctionWithInputs {
          */
 
         return roundClip(ADDEND - NUMERATOR / ((double)inputs.get(0).getOutput() + ADDEND));
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

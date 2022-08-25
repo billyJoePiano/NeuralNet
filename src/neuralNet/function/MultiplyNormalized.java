@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -49,5 +50,9 @@ public class MultiplyNormalized implements FunctionWithInputs {
         }
 
         return roundClip(Math.exp(sumLog / count) * MAX_PLUS_ONE - ZEROIZE);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

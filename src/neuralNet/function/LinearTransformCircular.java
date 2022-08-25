@@ -27,5 +27,4 @@ public class LinearTransformCircular extends LinearTransformClipped {
                 transformByMagnitudeAndSign(this.coefficient, params[0], params[1]),
                 this.offset + params[2]);
     }
-
 }

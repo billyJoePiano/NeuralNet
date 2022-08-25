@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -58,5 +59,9 @@ public class Uniformity implements FunctionWithInputs {
         }
 
         return roundClip(Short.MAX_VALUE - Math.sqrt(sumSq / count) * 2);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

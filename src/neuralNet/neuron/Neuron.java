@@ -20,7 +20,6 @@ public interface Neuron extends SignalProvider, SignalConsumer {
     default public ListWithView<SignalProvider> validateInputs(List<SignalProvider> inputs)
             throws IllegalArgumentException, NullPointerException {
 
-        List<SignalProvider> old = this.getInputs();
         if (inputs == null) {
             if (this.getMinInputs() != 0) {
                 throw new IllegalArgumentException();
@@ -29,15 +28,16 @@ public interface Neuron extends SignalProvider, SignalConsumer {
             return new ListWithView<>(new ArrayList<>());
         }
 
-        ListWithView<SignalProvider> iwv = new ListWithView<>(new ArrayList<>(inputs));
-        int size = iwv.inputs.size();
+        ListWithView<SignalProvider> listView = new ListWithView<>(new ArrayList<>(inputs));
+        int size = listView.inputs.size();
         int min = this.getMinInputs();
         int max = this.getMaxInputs();
-        if (size < min || size > max) {
-            throw new IllegalArgumentException("Input size must be " + min + " - " + max + ".  Actual size: " + size);
+        if (size < min || size > max || (this.pairedInputs() && (size & 0b1) != 0)) {
+            throw new IllegalArgumentException("Input size must be " + min + " - " + max + ".  Actual size: " + size
+                    + "  Inputs paired?: " + this.pairedInputs());
         }
 
-        return iwv;
+        return listView;
     }
 
     /**
@@ -69,13 +69,13 @@ public interface Neuron extends SignalProvider, SignalConsumer {
     }
 
     default public boolean checkForCircularReferences() {
-        List<SignalProvider> providers = this.getInputs();
+        List<? extends SignalProvider> providers = this.getInputs();
         if (providers == null || providers.size() == 0) return false;
 
-        Set<SignalConsumer> consumers = this.traceConsumers();
+        Set<? extends SignalConsumer> consumers = this.traceConsumers();
         if (consumers == null || consumers.size() == 0) return false;
 
-        for (SignalProvider neuron : this.getInputs()) {
+        for (SignalProvider neuron : providers) {
             if (neuron == null) throw new NullPointerException();
             if (neuron instanceof SignalConsumer && consumers.contains(neuron)) {
                 return true;
@@ -116,8 +116,10 @@ public interface Neuron extends SignalProvider, SignalConsumer {
     default public void traceConsumers(Set<SignalConsumer> addToExistingSet) {
         if (addToExistingSet.contains(this)) return;
         addToExistingSet.add(this);
+        Set<SignalConsumer> consumers = this.getConsumers();
+        if (consumers == null) return;
 
-        for (SignalConsumer neuron : this.getConsumers()) {
+        for (SignalConsumer neuron : consumers) {
             if (neuron instanceof Neuron) {
                 ((Neuron)neuron).traceConsumers(addToExistingSet);
             }

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -44,5 +45,9 @@ public class MultiplyCircular implements FunctionWithInputs {
         }
 
         return (short)Math.round(product * MAX_PLUS_ONE - ZEROIZE);
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

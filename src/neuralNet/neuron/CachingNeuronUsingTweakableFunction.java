@@ -5,7 +5,7 @@ import neuralNet.function.*;
 import java.util.*;
 
 public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunction
-        implements Tweakable<CachingNeuronUsingTweakableFunction> {
+        implements SignalProvider.Tweakable<CachingNeuronUsingTweakableFunction> {
 
     public CachingNeuronUsingTweakableFunction(CachingNeuronUsingTweakableFunction cloneFrom) {
         super(cloneFrom);
@@ -59,6 +59,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
 
     @Override
     public short[] getTweakingParams(CachingNeuronUsingTweakableFunction toAchieve) {
-        return new short[0];
+        return ((Tweakable)this.outputFunction)
+                    .getTweakingParams((Tweakable)toAchieve.outputFunction);
     }
 }

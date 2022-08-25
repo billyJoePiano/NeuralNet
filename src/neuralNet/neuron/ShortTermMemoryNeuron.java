@@ -12,7 +12,9 @@ import static neuralNet.util.Util.*;
  * Note that delay, fadeIn, and fadeOut can all be set to zero.  Length must be at least one
  *
  */
-public class ShortTermMemoryNeuron extends CachingNeuron {
+public class ShortTermMemoryNeuron extends CachingNeuron
+        implements SignalProvider.Tweakable<ShortTermMemoryNeuron> {
+
     public final short defaultVal;
     public final int delay;
 
@@ -67,10 +69,28 @@ public class ShortTermMemoryNeuron extends CachingNeuron {
     public ShortTermMemoryNeuron(SignalProvider input, int fadeOutOnly)
             throws IllegalArgumentException {
 
-        this(input, 0, 0, 1, fadeOutOnly, (short)0);
+        this(input, (short)0, 0, 0, 1, fadeOutOnly);
     }
 
-    public ShortTermMemoryNeuron(SignalProvider input, int delay, int fadeIn, int length, int fadeOut, short defaultVal)
+    public ShortTermMemoryNeuron(short defaultVal, int delay, int fadeIn, int length, int fadeOut) {
+        super();
+
+        if (delay < 0) throw new IllegalArgumentException("ShortTermMemory delay must be 0 or greater");
+        if (fadeIn < 0) throw new IllegalArgumentException("ShortTermMemory fadeIn must be 0 or greater");
+        if (length < 1) throw new IllegalArgumentException("ShortTermMemory length must be 1 or greater");
+        if (fadeOut < 0) throw new IllegalArgumentException("ShortTermMemory fadeOut must be 0 or greater");
+
+        this.defaultVal = defaultVal;
+        this.nextOutput = defaultVal;
+
+        this.delay = delay;
+        this.fadeIn = fadeIn;
+        this.length = length;
+        this.fadeOut = fadeOut;
+        this.memory = new double[delay + fadeIn + length + fadeOut];
+    }
+
+    public ShortTermMemoryNeuron(SignalProvider input, short defaultVal, int delay, int fadeIn, int length, int fadeOut)
             throws IllegalArgumentException {
 
         super(List.of(input));
@@ -134,8 +154,8 @@ public class ShortTermMemoryNeuron extends CachingNeuron {
         int fadeOut = this.fadeOut;
 
         int i;
-        boolean first;
-        int end = this.size == this.memory.length ? this.index : this.memory.length - 1;
+        boolean first; //flag to mark the first iteration when it starts at the ending index (below)
+        int end = this.size == this.memory.length ? this.index : this.memory.length - 1; // the index to end looping
 
         if (this.delay == 0 && this.fadeIn == 0) {
             i = this.index;
@@ -222,4 +242,27 @@ public class ShortTermMemoryNeuron extends CachingNeuron {
 
     @Override
     public void traceConsumers(Set<SignalConsumer> consumers) { }
+
+    public String toString() {
+        return "ShortTermMemory(" + this.defaultVal + ", " + this.delay + ", "
+                + this.fadeIn + ", " + this.length + ", " + this.fadeOut + ")";
+    }
+
+    @Override
+    public List<Param> getTweakingParams() {
+        //TODO
+        return null;
+    }
+
+    @Override
+    public ShortTermMemoryNeuron tweak(short[] params) {
+        //TODO
+        return null;
+    }
+
+    @Override
+    public short[] getTweakingParams(ShortTermMemoryNeuron toAchieve) {
+        //TODO
+        return new short[0];
+    }
 }

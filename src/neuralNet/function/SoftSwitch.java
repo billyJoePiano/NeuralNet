@@ -2,7 +2,9 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.io.*;
 import java.util.*;
+
 import static neuralNet.util.Util.*;
 
 public class SoftSwitch implements FunctionWithInputs {
@@ -73,5 +75,9 @@ public class SoftSwitch implements FunctionWithInputs {
         return (short)Math.round(
                 primaryWeight * inputs.get(primary).getOutput()
                         + secondaryWeight * inputs.get(secondary).getOutput());
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        return instance;
     }
 }

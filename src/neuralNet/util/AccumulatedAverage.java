@@ -91,7 +91,7 @@ public class AccumulatedAverage {
 
         for (Double stored : this.accumulated) {
             if (stored != null) {
-                avg = avg * weightSum + avg * currentWeight;
+                avg = avg * weightSum + stored * currentWeight;
                 weightSum += currentWeight;
                 avg /= currentWeight;
             }
