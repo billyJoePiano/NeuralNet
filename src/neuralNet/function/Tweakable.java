@@ -129,6 +129,8 @@ public interface Tweakable<F extends Tweakable<F>> {
     public static double transformByMagnitudeOnly(double currentValue, short magnitudeParam) {
         if (currentValue == 0 || !Double.isFinite(currentValue)) throw new IllegalArgumentException(currentValue + "");
 
+        if (magnitudeParam == (short)0) return currentValue;
+
         double exponent = magnitudeParam;
 
         if (exponent > HALF_MAX_PLUS_ONE) {
@@ -142,7 +144,11 @@ public interface Tweakable<F extends Tweakable<F>> {
     public static short[] toAchieveByMagnitudeOnly(double ... values)
             throws ArrayIndexOutOfBoundsException {
 
-        short[] result = new short[values.length / 2];
+        return toAchieveByMagnitudeOnly(new short[values.length / 2], values);
+    }
+
+    public static short[] toAchieveByMagnitudeOnly(short[] result, double ... values)
+            throws ArrayIndexOutOfBoundsException {
 
         for (int i = 0; i < values.length; i += 2) {
             double diff = Math.log(values[i + 1] / values[i]) / LOG4 * MAX_PLUS_ONE;
@@ -162,6 +168,13 @@ public interface Tweakable<F extends Tweakable<F>> {
             throws IllegalArgumentException {
 
         if (currentValue == 0 || !Double.isFinite(currentValue)) throw new IllegalArgumentException(currentValue + "");
+
+        if (magnitudeParam == (short)0) {
+            if (sign == (short)0) return currentValue;
+            else if (sign == (short)1 && currentValue < 0) return -currentValue;
+            else if (sign == (short)-1 && currentValue > 0) return -currentValue;
+            else throw new IllegalArgumentException();
+        }
 
         double coefficient = magnitudeParam;
 

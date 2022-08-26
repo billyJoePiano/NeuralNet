@@ -1,6 +1,7 @@
 package neuralNet.neuron;
 
 import neuralNet.function.*;
+import neuralNet.network.*;
 
 import java.util.*;
 
@@ -32,6 +33,8 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
             List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SquareWave.instance.getMutationParam()));
 
 
+    public final long lastTweaked;
+
     public final WaveFunction waveFunction;
 
     public final boolean sign;
@@ -50,6 +53,7 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
             throw new IllegalArgumentException();
         }
 
+        this.lastTweaked = -1; //marker for 'null'
         this.waveFunction = waveFunction;
         this.period = period;
         this.sign = period > 0;
@@ -63,12 +67,15 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
         this.currentPhase = this.phase;
     }
 
-    public StaticWaveProvider(StaticWaveProvider cloneFrom, WaveFunction waveFunction, double period, double phase) {
+    public StaticWaveProvider(StaticWaveProvider cloneFrom, WaveFunction waveFunction, double period, double phase, boolean forTrial) {
         super(cloneFrom);
 
         if (waveFunction == null || period == 0 || !(Double.isFinite(period) && Double.isFinite(phase))) {
             throw new IllegalArgumentException();
         }
+
+        if (forTrial) this.lastTweaked = NeuralNet.getCurrentGeneration();
+        else this.lastTweaked = cloneFrom.lastTweaked;
 
         this.waveFunction = waveFunction;
         this.period = period;
@@ -85,6 +92,7 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
 
     public StaticWaveProvider(StaticWaveProvider cloneFrom) {
         super();
+        this.lastTweaked = cloneFrom.lastTweaked;
         this.waveFunction = cloneFrom.waveFunction;
         this.sign = cloneFrom.sign;
         this.period = cloneFrom.period;
@@ -97,6 +105,9 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
     public StaticWaveProvider(StaticWaveProvider cloneFrom, WaveFunction waveFunction) {
         super(cloneFrom);
         if (waveFunction == null) throw new IllegalArgumentException();
+
+        this.lastTweaked = NeuralNet.getCurrentGeneration();
+
         this.waveFunction = waveFunction;
         this.sign = cloneFrom.sign;
         this.period = cloneFrom.period;
@@ -107,7 +118,7 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
     }
 
     public StaticWaveProvider(StaticWaveProvider cloneFrom, double period, double phase) {
-        this(cloneFrom, cloneFrom.waveFunction, period, phase);
+        this(cloneFrom, cloneFrom.waveFunction, period, phase, false);
     }
 
 
@@ -158,11 +169,16 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
     }
 
     @Override
-    public StaticWaveProvider tweak(short[] params) {
+    public Long getLastTweakedGeneration() {
+        return this.lastTweaked == -1 ? null : this.lastTweaked;
+    }
+
+    @Override
+    public StaticWaveProvider tweak(short[] params, boolean forTrial) {
         double period = transformByMagnitudeAndSign(this.period, params[0], params[1]);
         double phase = this.phase + (double)params[2] / MAX_PLUS_ONE;
 
-        return new StaticWaveProvider(this, this.waveFunction.mutate(params[3]), period, phase);
+        return new StaticWaveProvider(this, this.waveFunction.mutate(params[3]), period, phase, forTrial);
     }
 
     @Override

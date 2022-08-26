@@ -11,13 +11,17 @@ public abstract class NeuralNet<S extends Sensable<S>,
                             C extends DecisionConsumer<S, C, ?>>
         implements DecisionProvider<S, N, C> {
 
+    private static long generation = 0;
+    public static long getCurrentGeneration() { return generation; }
+    public static long nextGeneration() { return ++generation; }
+
     private transient Set<SignalProvider> neurons = Collections.newSetFromMap(new WeakHashMap<>());
-    private transient Set<SignalProvider> neuronsView = Collections.unmodifiableSet(neurons);
+    private transient Set<SignalProvider> neuronsView = Collections.unmodifiableSet(this.neurons);
     private transient S sensedObjected;
     private transient long round = 0;
 
     private void writeObject(ObjectOutputStream stream) throws IOException {
-        stream.writeObject(new ArrayList<>(neurons));
+        stream.writeObject(new ArrayList(this.neurons));
     }
 
     private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {

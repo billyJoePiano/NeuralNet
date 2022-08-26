@@ -22,18 +22,10 @@ public abstract class CachingProvider implements SignalProvider {
     /**
      * SHOULD ONLY BE INVOKED BY IMPLEMENTATIONS WHICH HAVE getMinInputs() == 0 !!!!
      */
-    protected CachingProvider() throws IllegalStateException {
-        //if (this.getMinInputs() != 0) throw new IllegalStateException();
-    }
+    protected CachingProvider() { }
 
     protected CachingProvider(CachingProvider cloneFrom) {
-        this(cloneFrom, false);
-    }
-
-    protected CachingProvider(CachingProvider cloneFrom, boolean cloneConsumers) {
-        if (cloneConsumers) {
-            this.consumers.addAll(cloneFrom.consumers);
-        }
+        this.consumers.addAll(cloneFrom.consumers);
     }
 
     protected abstract short calcOutput();

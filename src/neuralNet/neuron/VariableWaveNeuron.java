@@ -1,6 +1,7 @@
 package neuralNet.neuron;
 
 import neuralNet.function.*;
+import neuralNet.network.*;
 
 import java.util.*;
 
@@ -36,6 +37,7 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
         return (List<List<Param>>)Collections.unmodifiableList(params);
     }
 
+    public final long lastTweaked;
 
     public final WaveFunction waveFunction;
 
@@ -72,6 +74,7 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
             throw new IllegalArgumentException();
         }
 
+        this.lastTweaked = -1;
         this.waveFunction = waveFunction;
         this.periodMin = periodMin;
         this.periodMax = periodMax;
@@ -89,6 +92,7 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
             throw new IllegalArgumentException();
         }
 
+        this.lastTweaked = -1;
         this.waveFunction = waveFunction;
         this.periodMin = periodMin;
         this.periodMax = periodMax;
@@ -96,7 +100,7 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
     }
     
     public VariableWaveNeuron(VariableWaveNeuron cloneFrom, WaveFunction waveFunction,
-                              double periodMin, double periodMax) {
+                              double periodMin, double periodMax, boolean forTrial) {
         
         super(cloneFrom);
 
@@ -106,22 +110,8 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
             throw new IllegalArgumentException();
         }
 
+        this.lastTweaked = forTrial ? NeuralNet.getCurrentGeneration() : cloneFrom.lastTweaked;
         this.waveFunction = waveFunction;
-        this.periodMin = periodMin;
-        this.periodMax = periodMax;
-        this.periodRange = periodMax - periodMin;
-    }
-
-    public VariableWaveNeuron(VariableWaveNeuron cloneFrom, double periodMin, double periodMax)
-            throws IllegalArgumentException {
-
-        super(cloneFrom);
-
-        if (periodMin == 0 || periodMax == 0 || !(Double.isFinite(periodMin) && Double.isFinite(periodMax))) {
-            throw new IllegalArgumentException();
-        }
-
-        this.waveFunction = cloneFrom.waveFunction;
         this.periodMin = periodMin;
         this.periodMax = periodMax;
         this.periodRange = periodMax - periodMin;
@@ -129,16 +119,8 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
 
     public VariableWaveNeuron(VariableWaveNeuron cloneFrom) {
         super(cloneFrom);
+        this.lastTweaked = cloneFrom.lastTweaked;
         this.waveFunction = cloneFrom.waveFunction;
-        this.periodMin = cloneFrom.periodMin;
-        this.periodMax = cloneFrom.periodMax;
-        this.periodRange = cloneFrom.periodRange;
-    }
-
-    public VariableWaveNeuron(VariableWaveNeuron cloneFrom, WaveFunction waveFunction) {
-        super(cloneFrom);
-        if (waveFunction == null) throw new IllegalArgumentException();
-        this.waveFunction = waveFunction;
         this.periodMin = cloneFrom.periodMin;
         this.periodMax = cloneFrom.periodMax;
         this.periodRange = cloneFrom.periodRange;
@@ -346,11 +328,16 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
     }
 
     @Override
-    public VariableWaveNeuron tweak(short[] params) {
+    public Long getLastTweakedGeneration() {
+        return this.lastTweaked == -1 ? null : this.lastTweaked;
+    }
+
+    @Override
+    public VariableWaveNeuron tweak(short[] params, boolean forTrial) {
         double periodMin = transformByMagnitudeAndSign(this.periodMin, params[0], params[1]);
         double periodMax = transformByMagnitudeAndSign(this.periodMax, params[2], params[3]);
 
-        return new VariableWaveNeuron(this, this.waveFunction.mutate(params[4]), periodMin, periodMax);
+        return new VariableWaveNeuron(this, this.waveFunction.mutate(params[4]), periodMin, periodMax, forTrial);
     }
 
     @Override

@@ -59,5 +59,26 @@ public interface SignalProvider extends Serializable {
 
     public interface Tweakable<P extends SignalProvider.Tweakable<P>>
                     extends SignalProvider, neuralNet.function.Tweakable<P> {
+
+        /**
+         * Indicates the last generation where this node was optimized through a series of tweaking trials.
+         * NOTE: does not apply to random mutations.  Return null if such a trial has not yet happened
+         *
+         * @return
+         */
+        public Long getLastTweakedGeneration();
+
+        default P tweak(short[] params) {
+            return this.tweak(params, false);
+        }
+
+        /**
+         * Same as tweak(), except when forTrial == true it tells the tweaking constructor that the new
+         * neuron should be marked with the current generation, NOT just a random tweak/mutation
+         *
+         * @param params
+         * @return
+         */
+        public P tweak(short[] params, boolean forTrial);
     }
 }

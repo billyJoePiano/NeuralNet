@@ -1,5 +1,7 @@
 package neuralNet.neuron;
 
+import neuralNet.network.*;
+
 import java.util.*;
 
 import static neuralNet.function.Tweakable.*;
@@ -15,6 +17,8 @@ public class LongTermMemoryNeuron extends CachingNeuron
         implements SignalProvider.Tweakable<LongTermMemoryNeuron> {
 
     public static final double NaN = Double.NaN;
+
+    public final long lastTweaked;
 
     /**
      * Signal level to provide before enough memories have accumulated to produce a calculated signal
@@ -59,6 +63,7 @@ public class LongTermMemoryNeuron extends CachingNeuron
 
     public LongTermMemoryNeuron(LongTermMemoryNeuron cloneFrom) {
         super(cloneFrom);
+        this.lastTweaked = cloneFrom.lastTweaked;
         this.defaultVal = cloneFrom.defaultVal;
         this.delay = cloneFrom.delay;
         this.delayDbl = cloneFrom.delayDbl;
@@ -71,13 +76,15 @@ public class LongTermMemoryNeuron extends CachingNeuron
         else this.recent = new double[delay + fadeIn];
     }
 
-    public LongTermMemoryNeuron(LongTermMemoryNeuron cloneFrom, short defaultVal, int delay, int fadeIn)
+    public LongTermMemoryNeuron(LongTermMemoryNeuron cloneFrom, short defaultVal, int delay, int fadeIn, boolean forTrial)
             throws IllegalArgumentException {
 
         super(cloneFrom);
 
         if (delay < 0) throw new IllegalArgumentException("LongTermMemory delay must be 0 or greater");
         if (fadeIn < 0) throw new IllegalArgumentException("LongTermMemory fadeIn must be 0 or greater");
+
+        this.lastTweaked = forTrial ? NeuralNet.getCurrentGeneration() : cloneFrom.lastTweaked;
 
         this.defaultVal = defaultVal;
         this.nextOutput = defaultVal;
@@ -106,6 +113,7 @@ public class LongTermMemoryNeuron extends CachingNeuron
         if (delay < 0) throw new IllegalArgumentException("LongTermMemory delay must be 0 or greater");
         if (fadeIn < 0) throw new IllegalArgumentException("LongTermMemory fadeIn must be 0 or greater");
 
+        this.lastTweaked = -1;
         this.defaultVal = defaultVal;
         this.nextOutput = defaultVal;
         this.delay = delay;
@@ -127,6 +135,7 @@ public class LongTermMemoryNeuron extends CachingNeuron
         if (delay < 0) throw new IllegalArgumentException("LongTermMemory delay must be 0 or greater");
         if (fadeIn < 0) throw new IllegalArgumentException("LongTermMemory fadeIn must be 0 or greater");
 
+        this.lastTweaked = -1;
         this.defaultVal = defaultVal;
         this.nextOutput = defaultVal;
         this.delay = delay;
@@ -412,23 +421,45 @@ public class LongTermMemoryNeuron extends CachingNeuron
 
     @Override
     public List<Param> getTweakingParams() {
-        if (this.tweakingParams == null) {
-            this.tweakingParams = List.of(new Param(this.defaultVal),
-                                    new Param((short) -this.delay, Short.MAX_VALUE),
-                                    new Param((short) -this.fadeIn, Short.MAX_VALUE));
-        }
+        if (this.tweakingParams != null) return this.tweakingParams;
 
-        return this.tweakingParams;
+        short[] minParams = toAchieveByMagnitudeOnly(this.delay + 1, 1, this.fadeIn + 1, 1);
+        //always offset delay and fadeIn by 1 so 0 can be reached through a logarithmic function
+        // achieving "1" means actually achieving delay or fadeIn of 0
+
+
+        return this.tweakingParams = List.of(new Param(this.defaultVal),
+                new Param(minParams[0], Short.MAX_VALUE),
+                new Param(minParams[1], Short.MAX_VALUE));
     }
 
     @Override
-    public LongTermMemoryNeuron tweak(short[] params) {
-        return new LongTermMemoryNeuron(this, (short)(this.defaultVal + params[2]), this.delay + params[0], this.fadeIn + params[1]);
+    public Long getLastTweakedGeneration() {
+        return this.lastTweaked == -1 ? null : this.lastTweaked;
+    }
+
+    @Override
+    public LongTermMemoryNeuron tweak(short[] params, boolean forTrial) {
+        //always offset delay and fadeIn by 1 so 0 can be reached through a logarithmic function
+        int delay = (int)Math.round(transformByMagnitudeOnly(this.delay + 1, params[1])) - 1;
+        int fadeIn = (int)Math.round(transformByMagnitudeOnly(this.fadeIn + 1, params[2])) - 1;
+
+        if (delay < 0) delay = 0; //possible -1 due to rounding when making the original params minimum
+        if (fadeIn < 0) fadeIn = 0;
+
+        return new LongTermMemoryNeuron(this, (short)(this.defaultVal + params[0]), delay, fadeIn, forTrial);
     }
 
     @Override
     public short[] getTweakingParams(LongTermMemoryNeuron toAchieve) {
-        return toAchieve(this.defaultVal, toAchieve.defaultVal, this.delay, toAchieve.delay, this.fadeIn, toAchieve.fadeIn);
+        //always offset delay and fadeIn by 1 so 0 can be reached through a logarithmic function
+        short[] params = toAchieveByMagnitudeOnly(new short[3], this.delay + 1, toAchieve.delay + 1,
+                                                                        this.fadeIn + 1, toAchieve.fadeIn + 1);
+        params[2] = params[1];
+        params[1] = params[0];
+        params[0] = clip((int)toAchieve.defaultVal - (int)this.defaultVal);
+
+        return params;
     }
 
     public String toString() {

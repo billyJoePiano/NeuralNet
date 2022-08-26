@@ -1,7 +1,10 @@
 package neuralNet.neuron;
 
+import neuralNet.network.*;
+
 import java.util.*;
 
+import static neuralNet.function.Tweakable.*;
 import static neuralNet.util.Util.*;
 
 /**
@@ -14,6 +17,9 @@ import static neuralNet.util.Util.*;
  */
 public class ShortTermMemoryNeuron extends CachingNeuron
         implements SignalProvider.Tweakable<ShortTermMemoryNeuron> {
+
+    public final long lastTweaked;
+    private transient List<Param> tweakingParams;
 
     public final short defaultVal;
     public final int delay;
@@ -40,26 +46,12 @@ public class ShortTermMemoryNeuron extends CachingNeuron
      * Weight is proportional to rounds / (fade + 1) where 'rounds' includes the current round
      */
     public final int fadeOut;
-    //public final double fadeOutPlusOneDbl;
 
     private final double[] memory;
     private int index = 0;
     private int size = 0;
 
     private short nextOutput;
-
-    public ShortTermMemoryNeuron(ShortTermMemoryNeuron cloneFrom) {
-        super(cloneFrom);
-        this.defaultVal = cloneFrom.defaultVal;
-        this.delay = cloneFrom.delay;
-        this.fadeIn = cloneFrom.fadeIn;
-        //this.fadeInPlusOneDbl = cloneFrom.fadeInPlusOneDbl;
-        this.length = cloneFrom.length;
-        this.fadeOut = cloneFrom.fadeOut;
-        //this.fadeOutPlusOneDbl = cloneFrom.fadeOutPlusOneDbl;
-
-        this.memory = new double[cloneFrom.memory.length];
-    }
 
     /**
      * Behaves as an immediate short-term memory ... the most recent round (previous round) is at full weight for
@@ -79,6 +71,8 @@ public class ShortTermMemoryNeuron extends CachingNeuron
         if (fadeIn < 0) throw new IllegalArgumentException("ShortTermMemory fadeIn must be 0 or greater");
         if (length < 1) throw new IllegalArgumentException("ShortTermMemory length must be 1 or greater");
         if (fadeOut < 0) throw new IllegalArgumentException("ShortTermMemory fadeOut must be 0 or greater");
+
+        this.lastTweaked = -1;
 
         this.defaultVal = defaultVal;
         this.nextOutput = defaultVal;
@@ -100,6 +94,8 @@ public class ShortTermMemoryNeuron extends CachingNeuron
         if (length < 1) throw new IllegalArgumentException("ShortTermMemory length must be 1 or greater");
         if (fadeOut < 0) throw new IllegalArgumentException("ShortTermMemory fadeOut must be 0 or greater");
 
+        this.lastTweaked = -1;
+
         this.defaultVal = defaultVal;
         this.nextOutput = defaultVal;
 
@@ -108,9 +104,40 @@ public class ShortTermMemoryNeuron extends CachingNeuron
         this.length = length;
         this.fadeOut = fadeOut;
         this.memory = new double[delay + fadeIn + length + fadeOut];
+    }
 
-        //this.fadeInPlusOneDbl = fadeIn + 1;
-        //this.fadeOutPlusOneDbl = fadeOut + 1;
+    public ShortTermMemoryNeuron(ShortTermMemoryNeuron cloneFrom) {
+        super(cloneFrom);
+        this.lastTweaked = cloneFrom.lastTweaked;
+        this.defaultVal = cloneFrom.defaultVal;
+        this.delay = cloneFrom.delay;
+        this.fadeIn = cloneFrom.fadeIn;
+        this.length = cloneFrom.length;
+        this.fadeOut = cloneFrom.fadeOut;
+
+        this.memory = new double[cloneFrom.memory.length];
+    }
+
+    public ShortTermMemoryNeuron(ShortTermMemoryNeuron cloneFrom, short defaultVal,
+                                 int delay, int fadeIn, int length, int fadeOut, boolean forTrial) {
+
+        super(cloneFrom);
+
+        if (delay < 0) throw new IllegalArgumentException("ShortTermMemory delay must be 0 or greater");
+        if (fadeIn < 0) throw new IllegalArgumentException("ShortTermMemory fadeIn must be 0 or greater");
+        if (length < 1) throw new IllegalArgumentException("ShortTermMemory length must be 1 or greater");
+        if (fadeOut < 0) throw new IllegalArgumentException("ShortTermMemory fadeOut must be 0 or greater");
+
+        this.lastTweaked = forTrial ? NeuralNet.getCurrentGeneration() : cloneFrom.lastTweaked;
+
+        this.defaultVal = defaultVal;
+        this.nextOutput = defaultVal;
+
+        this.delay = delay;
+        this.fadeIn = fadeIn;
+        this.length = length;
+        this.fadeOut = fadeOut;
+        this.memory = new double[delay + fadeIn + length + fadeOut];
     }
 
     @Override
@@ -250,19 +277,55 @@ public class ShortTermMemoryNeuron extends CachingNeuron
 
     @Override
     public List<Param> getTweakingParams() {
-        //TODO
-        return null;
+        if (this.tweakingParams != null) return this.tweakingParams;
+
+        short[] minParams = toAchieveByMagnitudeOnly(this.delay + 1, 1, this.fadeIn + 1, 1,
+                                                        this.length, 1, this.fadeOut + 1, 1);
+        //always offset delay, fadeIn, and fadeOut by 1 so 0 can be reached through a logarithmic function
+        // achieving "1" means actually achieving delay/fadeIn/fadeOut of 0
+        // length must be at least one, so it is not shifted
+
+        return this.tweakingParams = List.of(new Param(this.defaultVal),
+                new Param(minParams[0], Short.MAX_VALUE),
+                new Param(minParams[1], Short.MAX_VALUE),
+                new Param(minParams[2], Short.MAX_VALUE),
+                new Param(minParams[3], Short.MAX_VALUE));
     }
 
     @Override
-    public ShortTermMemoryNeuron tweak(short[] params) {
-        //TODO
-        return null;
+    public Long getLastTweakedGeneration() {
+        return this.lastTweaked == -1 ? null : this.lastTweaked;
+    }
+
+    @Override
+    public ShortTermMemoryNeuron tweak(short[] params, boolean forTrial) {
+        //always offset delay and fadeIn by 1 so 0 can be reached through a logarithmic function
+        int delay = (int)Math.round(transformByMagnitudeOnly(this.delay + 1, params[1])) - 1;
+        int fadeIn = (int)Math.round(transformByMagnitudeOnly(this.fadeIn + 1, params[2])) - 1;
+        int length = (int)Math.round(transformByMagnitudeOnly(this.length, params[3])); //no offset, length >= 1
+        int fadeOut = (int)Math.round(transformByMagnitudeOnly(this.fadeOut + 1, params[4])) - 1;
+
+        if (delay < 0) delay = 0; //possible -1 due to rounding when making the original params minimum
+        if (fadeIn < 0) fadeIn = 0;
+        if (length < 1) length = 1;
+        if (fadeOut < 0) fadeOut = 0;
+
+        return new ShortTermMemoryNeuron(this, (short)(this.defaultVal + params[0]), delay, fadeIn, length, fadeOut, forTrial);
     }
 
     @Override
     public short[] getTweakingParams(ShortTermMemoryNeuron toAchieve) {
-        //TODO
-        return new short[0];
+        //always offset delay and fadeIn by 1 so 0 can be reached through a logarithmic function
+        short[] params = toAchieveByMagnitudeOnly(new short[5], this.delay + 1, toAchieve.delay + 1,
+                this.fadeIn + 1, toAchieve.fadeIn + 1, this.length, toAchieve.length,
+                this.fadeOut + 1, toAchieve.fadeOut + 1);
+
+        params[4] = params[3];
+        params[3] = params[2];
+        params[2] = params[1];
+        params[1] = params[0];
+        params[0] = clip((int)toAchieve.defaultVal - (int)this.defaultVal);
+
+        return params;
     }
 }
