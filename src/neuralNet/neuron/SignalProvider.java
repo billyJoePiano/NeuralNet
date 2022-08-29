@@ -22,11 +22,12 @@ public interface SignalProvider extends Serializable {
      */
     public boolean removeConsumer(SignalConsumer consumer);
 
+    /*
     /**
      * When implementing, return true if the oldConsumer was already in the set of consumers, false if it was not.
      * More formally, return true if the set of consumers was mutated as a result of this call.
      */
-    public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer);
+    //public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer);
 
     public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap);
 

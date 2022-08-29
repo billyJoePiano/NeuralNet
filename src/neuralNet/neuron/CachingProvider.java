@@ -69,6 +69,7 @@ public abstract class CachingProvider implements SignalProvider {
         return this.consumers.remove(consumer);
     }
 
+    /*
     @Override
     public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer) {
         if (this.consumers.remove(oldConsumer)) {
@@ -78,10 +79,11 @@ public abstract class CachingProvider implements SignalProvider {
         } else return false;
     }
 
-    /* @Override
+    @Override
     public void clearConsumers() {
         this.consumers.clear();
-    } */
+    }
+    */
 
     @Override
     public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {

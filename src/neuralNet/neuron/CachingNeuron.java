@@ -4,8 +4,8 @@ import java.io.*;
 import java.util.*;
 
 public abstract class CachingNeuron extends CachingProvider implements Neuron {
-    private final ArrayList<SignalProvider> inputs = new ArrayList<>();
-    private transient List<SignalProvider> inputsView = Collections.unmodifiableList(this.inputs);
+    protected final ArrayList<SignalProvider> inputs;
+    private transient List<SignalProvider> inputsView;
 
     @Override
     protected Object readResolve() throws ObjectStreamException {
@@ -13,15 +13,34 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
         return super.readResolve();
     }
 
-    protected CachingNeuron() { }
+    protected CachingNeuron() {
+        this.inputs = new ArrayList<>();
+        this.inputsView = Collections.unmodifiableList(this.inputs);
+    }
 
     protected CachingNeuron(CachingNeuron cloneFrom) {
         super(cloneFrom);
+        this.inputs = new ArrayList<>();
+        this.inputsView = Collections.unmodifiableList(this.inputs);
+
         this.inputs.addAll(cloneFrom.inputs);
     }
 
     protected CachingNeuron(List<SignalProvider> inputs) {
+        this.inputs = new ArrayList<>();
+        this.inputsView = Collections.unmodifiableList(this.inputs);
         this.setInputs(inputs);
+    }
+
+    protected CachingNeuron(ArrayList<SignalProvider> inputs, List<SignalProvider> inputsView) {
+        this.inputs = inputs;
+        this.inputsView = inputsView;
+    }
+
+    protected CachingNeuron(CachingNeuron cloneConsumersFrom, ArrayList<SignalProvider> inputs, List<SignalProvider> inputsView) {
+        super(cloneConsumersFrom);
+        this.inputs = inputs;
+        this.inputsView = inputsView;
     }
 
     protected abstract short calcOutput(List<SignalProvider> inputs);
@@ -35,7 +54,7 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
     }
 
     @Override
-    protected final short calcOutput() {
+    protected short calcOutput() {
         return this.calcOutput(this.inputsView);
     }
 
@@ -137,9 +156,6 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
         if (!this.inputs.contains(old)) old.removeConsumer(this);
 
         if (newProvider.addConsumer(this) && newProvider instanceof SignalConsumer consumer) {
-            //TODO PROBLEM WITH VariableWaveNeuron's "split" status between the two inputs, circular loop possibility on the second but not the first
-            // ...possibly make custom implementation of this function for VariableWaveNeuron???
-
             //only do this check if this is actually a new consumer for the provider,
             // and there is a possibility of an infinite loop
 

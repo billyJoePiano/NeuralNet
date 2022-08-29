@@ -148,10 +148,12 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
         return false;
     }
 
+    /*
     @Override
     public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer) {
         return false;
     }
+     */
 
     @Override
     public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {

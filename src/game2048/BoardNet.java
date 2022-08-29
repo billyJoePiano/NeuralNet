@@ -38,12 +38,14 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
 
     public BoardNet() { }
 
+
+    //TODO constructors for consumers substitutions map
     public BoardNet(BoardNet cloneFrom) {
-        this.cloneNeurons(cloneFrom, null);
+        this.cloneNeurons(cloneFrom, null, null);
     }
 
     public BoardNet(BoardNet cloneFrom, Map<SignalProvider, SignalProvider> substitutions) {
-        this.cloneNeurons(cloneFrom, substitutions);
+        this.cloneNeurons(cloneFrom, substitutions, null);
     }
 
     private Sensor[][] makeSensors() {

@@ -1,6 +1,7 @@
 package neuralNet.util;
 
 import net.openhft.affinity.*;
+import neuralNet.neuron.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -242,5 +243,53 @@ public abstract class Util {
             }
         }
         throw new RuntimeException("Could not obtain unique affinity lock");
+    }
+
+    public static void syncMaps(Map<SignalProvider, SignalProvider> providersMap,
+                         Map<SignalConsumer, SignalConsumer> consumersMap) {
+
+        for (SignalProvider provider : providersMap.keySet()) {
+            if (!(provider instanceof SignalConsumer oldConsumer)) continue;
+            if (consumersMap.containsKey(oldConsumer)) {
+                if (consumersMap.get(oldConsumer) != providersMap.get(provider))
+                    throw new IllegalArgumentException("providersMap and consumersMap must map the same key to the same value");
+
+            } else {
+                SignalProvider newProvider = providersMap.get(provider);
+                if (!(newProvider instanceof SignalConsumer newConsumer)) throw new IllegalStateException();
+                consumersMap.put(oldConsumer, newConsumer);
+            }
+        }
+
+        for (SignalConsumer consumer : consumersMap.keySet()) {
+            if (!(consumer instanceof SignalProvider oldProvider)) continue;
+            if (providersMap.containsKey(oldProvider))
+                continue; //we already verified they are the same on the above loop, no need to check again
+            SignalConsumer newConsumer = consumersMap.get(consumer);
+            if (!(newConsumer instanceof SignalProvider newProvider)) throw new IllegalStateException();
+            providersMap.put(oldProvider, newProvider);
+        }
+    }
+
+    public static Map<SignalConsumer, SignalConsumer> convertProvidersMap(Map<SignalProvider, SignalProvider> providersMap) {
+        Map<SignalConsumer, SignalConsumer> consumersMap = new HashMap<>();
+        for (SignalProvider provider : providersMap.keySet()) {
+            if (!(provider instanceof SignalConsumer oldConsumer)) continue;
+            SignalProvider newProvider = providersMap.get(provider);
+            if (!(newProvider instanceof SignalConsumer newConsumer)) throw new IllegalStateException();
+            consumersMap.put(oldConsumer, newConsumer);
+        }
+        return consumersMap;
+    }
+
+    public static Map<SignalProvider, SignalProvider> convertConsumersMap(Map<SignalConsumer, SignalConsumer> consumersMap) {
+        Map<SignalProvider, SignalProvider> providersMap = new HashMap<>();
+        for (SignalConsumer consumer : consumersMap.keySet()) {
+            if (!(consumer instanceof SignalProvider oldProvider)) continue;
+            SignalConsumer newConsumer = consumersMap.get(consumer);
+            if (!(newConsumer instanceof SignalProvider newProvider)) throw new IllegalStateException();
+            providersMap.put(oldProvider, newProvider);
+        }
+        return providersMap;
     }
 }

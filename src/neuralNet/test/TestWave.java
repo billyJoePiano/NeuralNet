@@ -14,9 +14,9 @@ import static neuralNet.util.Util.*;
 
 // Output can be copied into Excel spreadsheet for graphing
 public class TestWave {
-    public static final double PERIOD = 14347907;
+    public static final double PERIOD = 14_347_907;
     public static final double PHASE = Math.sqrt(2);
-    public static final int ROUNDS = -1; //(int)Math.abs(PERIOD * 1.125);
+    public static final int ROUNDS = 50_000_000; //(int)Math.abs(PERIOD * 1.125);
 
     public static final FixedValueProvider phase = makePhaseNeuron();
     public static final FixedValueProvider period = new FixedValueProvider(Short.MAX_VALUE);

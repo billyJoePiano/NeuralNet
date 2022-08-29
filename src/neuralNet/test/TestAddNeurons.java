@@ -32,7 +32,7 @@ public class TestAddNeurons {
         }
 
         for (BoardNet net : lastGen) {
-            net.checkForUnaccountedNeurons();
+            net.validateNeuronsSet();
         }
 
 

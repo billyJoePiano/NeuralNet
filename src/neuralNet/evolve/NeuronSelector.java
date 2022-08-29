@@ -12,7 +12,6 @@ import static neuralNet.test.TestUtil.compareObjects;
 
 public class NeuronSelector<N extends NeuralNet<?, N, ?>> {
 
-    //TODO: Change wave tweaking so it doesn't involve function change
     public static final List<SignalProvider> TEMPLATES = List.of(
             AdditionCircular.makeNeuron(),
             AdditionClipped.makeNeuron(),

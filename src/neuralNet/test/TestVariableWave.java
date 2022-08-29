@@ -37,7 +37,7 @@ public class TestVariableWave {
         TestWave tester = new TestWave(waves);
         tester.registerDependencies(others);
 
-        tester.runRounds(-1, charSeq -> { /*
+        tester.runRounds(ROUNDS, charSeq -> { /*
             System.out.println(charSeq + "\t\t\tPhase position: " + sine.getCurrentPhasePosition()
                                         + "\t\tPeriod: " + sine.getLastPeriod()
                                         + "\t\tPhase shift: " + sine.getCurrentPhaseShift()); */

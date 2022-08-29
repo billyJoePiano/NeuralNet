@@ -61,7 +61,7 @@ public class TestBoardNet extends Thread {
         decisions.get(2).setInputs(List.of(switchLeft));
         decisions.get(3).setInputs(List.of(switchRight));
 
-        return net.checkForUnaccountedNeurons();
+        return net.validateNeuronsSet();
         //return net;
     }
 
@@ -79,7 +79,7 @@ public class TestBoardNet extends Thread {
         decisions.get(2).setInputs(List.of(RandomValue.makeNeuron()));
         decisions.get(3).setInputs(List.of(RandomValue.makeNeuron()));
 
-        return rand.checkForUnaccountedNeurons();
+        return rand.validateNeuronsSet();
         //return rand;
     }
 

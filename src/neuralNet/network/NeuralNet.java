@@ -1,8 +1,10 @@
 package neuralNet.network;
 
+import neuralNet.evolve.*;
 import neuralNet.neuron.*;
 import neuralNet.util.*;
 
+import java.io.*;
 import java.util.*;
 
 public abstract class NeuralNet<S extends Sensable<S>,
@@ -10,10 +12,15 @@ public abstract class NeuralNet<S extends Sensable<S>,
                             C extends DecisionConsumer<S, C, ?>>
         implements DecisionProvider<S, N, C> {
 
-    //TODO figure out how to serialize/deserialize the current generation value
-    private static long generation = 0;
-    public static long getCurrentGeneration() { return generation; }
-    public static long nextGeneration() { return ++generation; }
+    private enum Generation {
+        CURRENT;
+        private long generation = 0;
+    }
+
+    public static long getCurrentGeneration() { return Generation.CURRENT.generation; }
+    public static long nextGeneration() { return ++Generation.CURRENT.generation; }
+
+    private final Generation current = Generation.CURRENT; //ensures that the current generation value will be serialized/deserialized
 
     private Set<SignalProvider> neurons = new SerializableWeakHashSet<>();
     private SerializableWeakRef<NoOp> noOp;
@@ -21,6 +28,11 @@ public abstract class NeuralNet<S extends Sensable<S>,
     private transient Set<SignalProvider> neuronsView = ((SerializableWeakHashSet<SignalProvider>)this.neurons).getView();
     private transient S sensedObjected;
     private transient long round = 0;
+
+    protected Object readResolve() throws ObjectStreamException {
+        this.neuronsView = ((SerializableWeakHashSet<SignalProvider>)this.neurons).getView();
+        return this;
+    }
 
     protected NeuralNet() { }
 
@@ -34,24 +46,33 @@ public abstract class NeuralNet<S extends Sensable<S>,
      * subclass's constructor after it has finished those initializations.
      *
      * @param cloneFrom the neural net we are cloning
-     * @param substitutions any special neuron substitutions to use.  NOTE THAT ANY PASSED MAP WILL BE MUTATED.
+     * @param providersMap any special signalProviders substitutions to use.  NOTE THAT ANY PASSED MAP WILL BE MUTATED.
      *                      If null, an empty HashMap will be constructed and used to map neurons from the old
      *                      net to cloned copies for the new one
      *
+     * @param consumersMap any special signalConsumers substitutions to use.  NOTE THAT ANY PASSED MAP WILL BE MUTATED.
+     *                      If null, an empty HashMap will be constructed and used to map neurons from the old
+     *                      net to cloned copies for the new one
      */
-    protected void cloneNeurons(N cloneFrom, Map<SignalProvider, SignalProvider> substitutions) {
-        cloneFrom.checkForUnaccountedNeurons();
+    protected void cloneNeurons(N cloneFrom,
+                                Map<SignalProvider, SignalProvider> providersMap,
+                                Map<SignalConsumer, SignalConsumer> consumersMap) {
+        //cloneFrom.validateNeuronsSet();
+        if (providersMap != null) {
+            if (consumersMap != null) Util.syncMaps(providersMap, consumersMap);
+            else consumersMap = Util.convertProvidersMap(providersMap);
 
-        Map<SignalProvider, SignalProvider> providersMap = this.populateSensorCloneMap(cloneFrom, substitutions);
-        Map<SignalConsumer, SignalConsumer> consumersMap = this.getDecisionCloneMap(cloneFrom);
+        } else if (consumersMap != null) providersMap = Util.convertConsumersMap(consumersMap);
+
+        providersMap = this.populateSensorCloneMap(cloneFrom, providersMap);
+        consumersMap = this.populateDecisionCloneMap(cloneFrom, consumersMap);
 
         // clone allProviders from the old instance, and put into the providersMap
         for (SignalProvider old : ((NeuralNet<S, N, C>)cloneFrom).neurons) {
-            SignalProvider mine = providersMap.get(old);
-            if (mine == null) {
-                mine = old.clone();
-                providersMap.put(old, mine);
-            }
+            if (providersMap.containsKey(old)) continue;
+
+            SignalProvider mine = old.clone();
+            providersMap.put(old, mine);
 
             if (old instanceof SignalConsumer oldConsumer) {
                 if (mine instanceof SignalConsumer myConsumer) {
@@ -130,6 +151,10 @@ public abstract class NeuralNet<S extends Sensable<S>,
                                       Set<SignalConsumer> consumersFinished)
             throws StackOverflowError {
 
+        if (neuron instanceof ComplexNeuron.MultiOutput complexMultiOutput) {
+            neuron = complexMultiOutput.getPrimaryNeuron();
+        }
+
         if (consumersInvoked.contains(neuron)) return;
         consumersInvoked.add(neuron);
 
@@ -171,6 +196,10 @@ public abstract class NeuralNet<S extends Sensable<S>,
                                          Set<SignalConsumer> consumersInvoked,
                                          Set<SignalConsumer> consumersFinished)
             throws StackOverflowError {
+
+        if (neuron instanceof ComplexNeuron.MultiOutput complexMultiOutput) {
+            neuron = complexMultiOutput.getPrimaryNeuron();
+        }
 
         if (providersInvoked.contains(neuron)) return;
         providersInvoked.add(neuron);
@@ -239,46 +268,118 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
     public void reset() {
         this.round = 0;
-        //checkForUnaccountedNeurons();
         for (SignalProvider neuron : this.neurons) {
             neuron.reset();
         }
     }
 
-    public N checkForUnaccountedNeurons() {
-        this.getDecisionNodes().forEach(node -> this.neurons.addAll(node.getInputs()));
-        boolean repeatIteration;
-        do {
-            repeatIteration = false;
-            for (SignalProvider neuron : new HashSet<>(this.neurons)) {
-                if (neuron instanceof SensorNode && ((SensorNode) neuron).getDecisionProvider() != this) {
+    public N validateNeuronsSet() {
+        this.neurons.clear();
+
+        Set<SignalProvider> providers = new HashSet<>(this.getSensors());
+        this.getDecisionNodes().forEach(node -> providers.addAll(node.getInputs()));
+        Set<SignalConsumer> consumers = new HashSet<>();
+
+        while (true) {
+            boolean repeatIteration = false;
+            Set<SignalProvider> failedToComplete = null;
+
+            for (SignalProvider provider : providers) {
+                if (provider instanceof SensorNode && ((SensorNode) provider).getDecisionProvider() != this) {
                     throw new IllegalStateException();
                 }
 
-                if (neuron instanceof SignalConsumer consumer) try {
-                    checkForUnaccountedNeurons(consumer);
+                boolean failed = false;
+
+                if (provider instanceof SignalConsumer consumer) try {
+                    this.validateNeuronsSet(consumer, consumers);
 
                 } catch (StackOverflowError e) {
+                    failed = true;
+                    System.err.println("\tRecoverable error:\n" + e); // ...see explanation in cloneNeurons()
+                }
+
+                try {
+                    this.validateNeuronsSet(provider, consumers);
+
+                } catch (StackOverflowError e) {
+                    failed = true;
+                    System.err.println("\tRecoverable error:\n" + e); // ...see explanation in cloneNeurons()
+                }
+
+                if (failed) {
                     repeatIteration = true;
-                    System.err.println("Recoverable error: " + e); // ...see explanation in cloning constructor
+                    if (failedToComplete == null) failedToComplete = new HashSet<>();
+                    failedToComplete.add(provider);
                 }
             }
 
-        } while (repeatIteration);
+            if (!repeatIteration) break;
+
+            Set<SignalProvider> successfullyCompleted = new HashSet<>(providers);
+            successfullyCompleted.removeAll(failedToComplete);
+
+            providers.addAll(this.neurons);
+            providers.removeAll(successfullyCompleted);
+
+            this.neurons.retainAll(successfullyCompleted);
+            consumers.retainAll(successfullyCompleted);
+        }
 
         return (N)this;
     }
 
-    protected void checkForUnaccountedNeurons(SignalConsumer neuron) throws StackOverflowError {
+    protected void validateNeuronsSet(SignalConsumer neuron, Set<SignalConsumer> consumers) throws StackOverflowError {
+        if (consumers.contains(neuron)) return;
+
+        if (neuron instanceof ComplexNeuronMember complex) {
+            consumers.addAll(complex.getMembers());
+            ComplexNeuronMember primary = complex.getPrimaryNeuron();
+            if (neuron != primary) {
+                this.validateNeuronsSet((SignalProvider)primary, consumers);
+            }
+
+        } else {
+            consumers.add(neuron);
+        }
+
+        consumers.add(neuron);
+
         for (SignalProvider provider : neuron.getInputs()) {
-            if (this.neurons.contains(provider)) continue;
-            if (provider instanceof SensorNode && ((SensorNode)provider).getDecisionProvider() != this)
+            if (provider instanceof SensorNode sensor && sensor.getDecisionProvider() != this)
                 throw new IllegalStateException();
 
-            this.neurons.add(provider);
+            this.validateNeuronsSet(provider, consumers);
 
             if (provider instanceof SignalConsumer consumer) {
-                checkForUnaccountedNeurons(consumer);
+                this.validateNeuronsSet(consumer, consumers);
+            }
+        }
+    }
+
+    protected void validateNeuronsSet(SignalProvider neuron, Set<SignalConsumer> consumers) throws StackOverflowError {
+        if (this.neurons.contains(neuron)) return;
+        this.neurons.add(neuron);
+
+        if (neuron instanceof ComplexNeuronMember complex) {
+            ComplexNeuronMember primary = complex.getPrimaryNeuron();
+
+            if (neuron == primary) {
+                for (ComplexNeuronMember member : complex.getMembers()) {
+                    this.validateNeuronsSet((SignalProvider) member, consumers);
+                }
+            }
+            this.validateNeuronsSet((SignalConsumer) primary, consumers); // based on the assumption that the inputs are the same for all members
+        }
+
+        for (SignalConsumer consumer : neuron.getConsumers()) {
+            if (consumer instanceof DecisionNode decision && decision.getDecisionProvider() != this)
+                throw new IllegalStateException();
+
+            this.validateNeuronsSet(consumer, consumers);
+
+            if (consumer instanceof SignalProvider provider) {
+                this.validateNeuronsSet(provider, consumers);
             }
         }
     }
@@ -320,15 +421,6 @@ public abstract class NeuralNet<S extends Sensable<S>,
         }
     }
 
-    /**
-     * Convenience method for populateSensorCloneMap() which uses the default empty HashMap
-     *
-     * @param clonedFrom NeuralNet which this is cloned from
-     * @return a new HashMap populated with the old sensors
-     */
-    private Map<SignalProvider, SignalProvider> getSensorCloneMap(N clonedFrom) {
-        return populateSensorCloneMap(clonedFrom, null);
-    }
 
     /**
      * Default implementation assumes the Lists of sensor nodes are identical size, and maps
@@ -358,8 +450,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
             SensorNode<S, N> orig = origIt.next(),
                              mine = myIt.next();
 
-            mine.addConsumers(orig.getConsumers());
-            usingMap.put(orig, mine);
+            usingMap.computeIfAbsent(orig, o -> mine).addConsumers(orig.getConsumers());
         }
 
         return usingMap;
@@ -378,8 +469,9 @@ public abstract class NeuralNet<S extends Sensable<S>,
      * @throws NoSuchElementException if the DecisionNode list from the cloned NeuralNet is smaller than
      * the list from this
      */
-    private Map<SignalConsumer, SignalConsumer> getDecisionCloneMap(N clonedFrom) {
-        Map<SignalConsumer, SignalConsumer> map = new HashMap<>();
+    private Map<SignalConsumer, SignalConsumer> populateDecisionCloneMap(N clonedFrom,
+                                                                     Map<SignalConsumer, SignalConsumer> usingMap) {
+        if (usingMap == null) usingMap = new HashMap<>();
 
         for (ListIterator<? extends DecisionNode<N, C>>
                 origIt = clonedFrom.getDecisionNodes().listIterator(),
@@ -389,11 +481,10 @@ public abstract class NeuralNet<S extends Sensable<S>,
             DecisionNode<N, C> orig = origIt.next(),
                                mine = myIt.next();
 
-            mine.setInputs(orig.getInputs());
-            map.put(orig, mine);
+            usingMap.computeIfAbsent(orig, o -> mine).setInputs(orig.getInputs());
         }
 
-        return map;
+        return usingMap;
     }
 
     public void setSensedObject(S sensedObject) {
