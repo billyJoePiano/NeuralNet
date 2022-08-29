@@ -9,7 +9,7 @@ public interface SensorNode<S extends Sensable<S>,
 
     public S getSensedObject();
     public P getDecisionProvider();
-    public void sense();
+    public short sense();
 
     //public int getOutputId(); // tells the Sensable object which output to assign the sensor to
 

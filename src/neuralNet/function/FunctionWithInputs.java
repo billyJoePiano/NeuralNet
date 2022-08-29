@@ -20,5 +20,5 @@ public interface FunctionWithInputs extends Serializable {
     public short calcOutput(List<SignalProvider> inputs);
 
     public interface Tweakable<M extends Tweakable<M>>
-            extends FunctionWithInputs, neuralNet.function.Tweakable<M> { }
+            extends FunctionWithInputs, neuralNet.evolve.Tweakable<M> { }
 }

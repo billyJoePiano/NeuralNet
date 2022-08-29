@@ -2,7 +2,6 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -15,25 +14,23 @@ import static neuralNet.util.Util.*;
  * the rounding required to fit the outputs into discrete integers causes some loss of precision
  * when used to invert one another.
  */
-public class Decrease implements FunctionWithInputs {
+public enum Decrease implements FunctionWithInputs {
+    INSTANCE;
+
     public static final double NUMERATOR = 536870912; // 2 to the 29th power
     public static final double ADDEND = 40131.439945759589960864302279981; // sqrt(2^29 + 2^30) - 1
 
-    public static final Decrease instance = new Decrease();
-
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingFunction(instance, List.of(input));
+        return new CachingNeuronUsingFunction(INSTANCE, List.of(input));
     }
-
-    private Decrease() { }
 
     @Override
     public int getMinInputs() {
@@ -58,9 +55,5 @@ public class Decrease implements FunctionWithInputs {
          */
 
         return roundClip(-ADDEND - NUMERATOR / ((double)inputs.get(0).getOutput() - ADDEND));
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

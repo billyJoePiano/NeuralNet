@@ -2,9 +2,10 @@ package neuralNet.neuron;
 
 import neuralNet.network.*;
 
+import java.io.*;
 import java.util.*;
 
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 import static neuralNet.util.Util.*;
 
 /**
@@ -46,20 +47,30 @@ public class LongTermMemoryNeuron extends CachingNeuron
     public final double fadeInPlusAddToStoreTotalWeight;
 
 
+    //TODO -- create the correctly sized memory arrays (recent and accumulated) after deserialization
     /**
      * Memories that are still delayed or are fading-in
      */
-    private final double[] recent;
-    private int index = 0;
-    private int size = 0;
+    private transient double[] recent;
+    private transient int index = 0;
+    private transient int size = 0;
 
-    private short nextOutput;
+    private transient short nextOutput;
 
-    private double[] accumulated = new double[] {
+    private transient double[] accumulated = new double[] {
             NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN
         }; //NaN is marker for not initialized... like a primitive version of 'null', to avoid boxing/unboxing overhead
 
     private transient List<Param> tweakingParams;
+
+    protected Object readResolve() throws ObjectStreamException {
+        if (this.delay == 0 && this.fadeIn == 0) this.recent = null;
+        else this.recent = new double[this.delay + this.fadeIn];
+
+        this.accumulated = new double[] { NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN };
+
+        return super.readResolve();
+    }
 
     public LongTermMemoryNeuron(LongTermMemoryNeuron cloneFrom) {
         super(cloneFrom);

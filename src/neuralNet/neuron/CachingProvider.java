@@ -1,27 +1,23 @@
 package neuralNet.neuron;
 
+import neuralNet.util.*;
+
 import java.io.*;
 import java.util.*;
 
 public abstract class CachingProvider implements SignalProvider {
-    private transient Set<SignalConsumer> consumers = Collections.newSetFromMap(new WeakHashMap<>());
-    private transient Set<SignalConsumer> consumersView = Collections.unmodifiableSet(this.consumers);
+    private final Set<SignalConsumer> consumers = new SerializableWeakHashSet<>();
+
+    private transient Set<SignalConsumer> consumersView
+            = ((SerializableWeakHashSet<SignalConsumer>)this.consumers).getView();
 
     private transient Short output;
 
-    private void writeObject(ObjectOutputStream stream) throws IOException {
-        stream.writeObject(new ArrayList<>(consumers));
+    protected Object readResolve() throws ObjectStreamException {
+        this.consumersView = ((SerializableWeakHashSet<SignalConsumer>)this.consumers).getView();
+        return this;
     }
 
-    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        this.consumers = Collections.newSetFromMap(new WeakHashMap<>());
-        this.consumers.addAll((List<SignalConsumer>)stream.readObject());
-        this.consumersView = Collections.unmodifiableSet(this.consumers);
-    }
-
-    /**
-     * SHOULD ONLY BE INVOKED BY IMPLEMENTATIONS WHICH HAVE getMinInputs() == 0 !!!!
-     */
     protected CachingProvider() { }
 
     protected CachingProvider(CachingProvider cloneFrom) {
@@ -61,6 +57,11 @@ public abstract class CachingProvider implements SignalProvider {
     @Override
     public boolean addConsumer(SignalConsumer consumer) {
         return this.consumers.add(consumer);
+    }
+
+    @Override
+    public boolean addConsumers(Collection<? extends SignalConsumer> consumers) {
+        return this.consumers.addAll(consumers);
     }
 
     @Override

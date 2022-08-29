@@ -2,25 +2,22 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
-public class DifferenceCircular implements FunctionWithInputs {
-    public static final DifferenceCircular instance = new DifferenceCircular();
+public enum DifferenceCircular implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingFunction(instance, Arrays.asList(value, comparedTo));
+        return new CachingNeuronUsingFunction(INSTANCE, Arrays.asList(value, comparedTo));
     }
-
-    private DifferenceCircular() { }
 
     @Override
     public int getMinInputs() {
@@ -40,9 +37,5 @@ public class DifferenceCircular implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return (short)((int)inputs.get(0).getOutput() - (int)inputs.get(1).getOutput());
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

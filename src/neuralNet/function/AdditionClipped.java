@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public class AdditionClipped implements FunctionWithInputs {
-    public static final AdditionClipped instance = new AdditionClipped();
+public enum AdditionClipped implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private AdditionClipped() { }
 
     @Override
     public int getMinInputs() {
@@ -43,9 +40,5 @@ public class AdditionClipped implements FunctionWithInputs {
         }
 
         return clip(sum);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

@@ -2,27 +2,20 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.concurrent.*;
 
-public class RandomValue implements FunctionNoInputs {
+public enum RandomValue implements FunctionNoInputs {
+    INSTANCE;
+
     public static final int ORIGIN = Short.MIN_VALUE;
     public static final int BOUND = (int)Short.MAX_VALUE + 1;
 
-    public static final RandomValue instance = new RandomValue();
-
     public static CachingProviderUsingFunction makeNeuron() {
-        return new CachingProviderUsingFunction(instance);
+        return new CachingProviderUsingFunction(INSTANCE);
     }
-
-    private RandomValue() { }
 
     @Override
     public short calcOutput() {
         return (short)ThreadLocalRandom.current().nextInt(ORIGIN, BOUND);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

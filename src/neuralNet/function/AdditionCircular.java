@@ -2,25 +2,22 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
-public class AdditionCircular implements FunctionWithInputs {
-    public static final AdditionCircular instance = new AdditionCircular();
+public enum AdditionCircular implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private AdditionCircular() { }
 
     @Override
     public int getMinInputs() {
@@ -41,9 +38,5 @@ public class AdditionCircular implements FunctionWithInputs {
         }
 
         return (short)sum;
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

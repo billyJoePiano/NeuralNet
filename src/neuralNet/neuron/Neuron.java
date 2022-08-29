@@ -1,72 +1,10 @@
 package neuralNet.neuron;
 
-import neuralNet.util.*;
-
 import java.util.*;
 
 public interface Neuron extends SignalProvider, SignalConsumer {
     @Override //override from SignalProvider, to make the return type Neuron
     public Neuron clone();
-
-
-
-    /**
-     * Convenience method to be invoked by setInputs() to validate the list.  Should be followed
-     * by a call to populateConsumers() after the new list/view have been assigned to the instance variables
-     *
-     * Throws IllegalArgumentException if the list doesn't check out.
-     * Otherwise returns copied list with an unmodifiable view, wrapped by InputsWithView
-     */
-    default public ListWithView<SignalProvider> validateInputs(List<SignalProvider> inputs)
-            throws IllegalArgumentException, NullPointerException {
-
-        if (inputs == null) {
-            if (this.getMinInputs() != 0) {
-                throw new IllegalArgumentException();
-            }
-
-            return new ListWithView<>(new ArrayList<>());
-        }
-
-        ListWithView<SignalProvider> listView = new ListWithView<>(new ArrayList<>(inputs));
-        int size = listView.inputs.size();
-        int min = this.getMinInputs();
-        int max = this.getMaxInputs();
-        if (size < min || size > max || (this.pairedInputs() && (size & 0b1) != 0)) {
-            throw new IllegalArgumentException("Input size must be " + min + " - " + max + ".  Actual size: " + size
-                    + "  Inputs paired?: " + this.pairedInputs());
-        }
-
-        return listView;
-    }
-
-    /**
-     * Convenience method to be invoked by setInputs(), after validateInputs returns and the new
-     * inputs list/view has already been assigned to the instance variables.
-     *
-     * @param newInputs
-     * @param oldInputs
-     */
-    default public void populateConsumers(List<SignalProvider> newInputs, List<SignalProvider> oldInputs) {
-        if (newInputs != null) {
-            if (oldInputs != null) {
-                for (SignalProvider neuron : oldInputs) {
-                    neuron.removeConsumer(this);
-                }
-            }
-
-            for (SignalProvider neuron : newInputs) {
-                neuron.addConsumer(this);
-            }
-
-        } else if (oldInputs != null) {
-            for (SignalProvider neuron : oldInputs) {
-                if (!newInputs.contains(neuron)) {
-                    neuron.removeConsumer(this);
-                }
-            }
-        }
-    }
 
     default public boolean checkForCircularReferences() {
         List<? extends SignalProvider> providers = this.getInputs();
@@ -82,6 +20,12 @@ public interface Neuron extends SignalProvider, SignalConsumer {
             }
         }
         return false;
+    }
+
+    default public boolean traceConsumers(SignalConsumer contains) {
+        Set<SignalConsumer> consumers = this.traceConsumers();
+        if (consumers == null) return false;
+        else return consumers.contains(contains);
     }
 
     /**

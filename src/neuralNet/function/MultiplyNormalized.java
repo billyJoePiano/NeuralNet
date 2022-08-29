@@ -2,7 +2,6 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -10,22 +9,20 @@ import static neuralNet.util.Util.*;
 /**
  * AKA Geometric Mean
  */
-public class MultiplyNormalized implements FunctionWithInputs {
-    public static final MultiplyNormalized instance = new MultiplyNormalized();
+public enum MultiplyNormalized implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private MultiplyNormalized() { }
 
     @Override
     public int getMinInputs() {
@@ -50,9 +47,5 @@ public class MultiplyNormalized implements FunctionWithInputs {
         }
 
         return roundClip(Math.exp(sumLog / count) * MAX_PLUS_ONE - ZEROIZE);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

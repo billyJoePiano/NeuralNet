@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public class SoftSwitch implements FunctionWithInputs {
-    public static final SoftSwitch instance = new SoftSwitch();
+public enum SoftSwitch implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private SoftSwitch() { }
 
     @Override
     public int getMinInputs() {
@@ -75,9 +72,5 @@ public class SoftSwitch implements FunctionWithInputs {
         return (short)Math.round(
                 primaryWeight * inputs.get(primary).getOutput()
                         + secondaryWeight * inputs.get(secondary).getOutput());
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

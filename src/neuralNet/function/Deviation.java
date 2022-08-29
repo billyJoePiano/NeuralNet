@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public class Deviation implements FunctionWithInputs {
-    public static final Deviation instance = new Deviation();
+public enum Deviation implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private Deviation() { }
 
     @Override
     public int getMinInputs() {
@@ -59,9 +56,5 @@ public class Deviation implements FunctionWithInputs {
         }
 
         return roundClip(Math.sqrt(sumSq / count) * 2 + Short.MIN_VALUE);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

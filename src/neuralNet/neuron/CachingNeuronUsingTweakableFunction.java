@@ -57,7 +57,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
 
     @Override
     public List<Param> getTweakingParams() {
-        return ((Tweakable)this.outputFunction).getTweakingParams();
+        return ((FunctionWithInputs.Tweakable)this.outputFunction).getTweakingParams();
     }
 
     @Override
@@ -74,7 +74,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
 
     @Override
     public short[] getTweakingParams(CachingNeuronUsingTweakableFunction toAchieve) {
-        return ((Tweakable)this.outputFunction)
-                    .getTweakingParams((Tweakable)toAchieve.outputFunction);
+        return ((FunctionWithInputs.Tweakable)this.outputFunction)
+                    .getTweakingParams((FunctionWithInputs.Tweakable)toAchieve.outputFunction);
     }
 }

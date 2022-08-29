@@ -4,7 +4,7 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 import static neuralNet.util.Util.*;
 
 public class LinearTransformClipped implements FunctionWithInputs.Tweakable<LinearTransformClipped> {

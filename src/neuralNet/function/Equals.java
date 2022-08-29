@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public class Equals implements FunctionWithInputs {
-    public static final Equals instance = new Equals();
+public enum Equals implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private Equals() { }
 
     @Override
     public int getMinInputs() {
@@ -56,9 +53,5 @@ public class Equals implements FunctionWithInputs {
         }
 
         return (short)(((double)(maxCount - 1) / (double)(size - 1)) * RANGE_INT + Short.MIN_VALUE);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

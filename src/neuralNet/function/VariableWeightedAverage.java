@@ -9,13 +9,13 @@ import static neuralNet.util.Util.*;
 /**
  * AKA AdditionNormalized
  */
-public class VariableWeightedAverage implements FunctionWithInputs, Tweakable<VariableWeightedAverage> {
-    public static CachingNeuronUsingFunction makeNeuron(double minWeight, double maxWeight, SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(new VariableWeightedAverage(minWeight, maxWeight), inputs);
+public class VariableWeightedAverage implements FunctionWithInputs.Tweakable<VariableWeightedAverage> {
+    public static CachingNeuronUsingTweakableFunction makeNeuron(double minWeight, double maxWeight, SignalProvider ... inputs) {
+        return new CachingNeuronUsingTweakableFunction(new VariableWeightedAverage(minWeight, maxWeight), inputs);
     }
 
-    public static CachingNeuronUsingFunction makeNeuron(double minWeight, double maxWeight) {
-        return new CachingNeuronUsingFunction(new VariableWeightedAverage(minWeight, maxWeight));
+    public static CachingNeuronUsingTweakableFunction makeNeuron(double minWeight, double maxWeight) {
+        return new CachingNeuronUsingTweakableFunction(new VariableWeightedAverage(minWeight, maxWeight));
     }
 
     public static final List<Param> TWEAKING_PARAMS = List.of(Param.DEFAULT, Param.DEFAULT);
@@ -112,6 +112,11 @@ public class VariableWeightedAverage implements FunctionWithInputs, Tweakable<Va
 
     @Override
     public boolean pairedInputs() {
+        return true;
+    }
+
+    @Override
+    public boolean inputOrderMatters() {
         return true;
     }
 }

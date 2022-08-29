@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
-public class Narrow implements FunctionWithInputs {
+public enum Narrow implements FunctionWithInputs {
+    INSTANCE;
+
     public static final double INV_MULTIPLIER = 1 / (double)32768;
 
-    public static final Narrow instance = new Narrow();
-
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider input) {
-        return new CachingNeuronUsingFunction(instance, Arrays.asList(input));
+        return new CachingNeuronUsingFunction(INSTANCE, Arrays.asList(input));
     }
-
-    private Narrow() { }
 
     @Override
     public int getMinInputs() {
@@ -52,9 +49,5 @@ public class Narrow implements FunctionWithInputs {
             if (result <= Short.MIN_VALUE) return Short.MIN_VALUE;
             else return (short)result;
         }
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

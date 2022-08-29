@@ -4,7 +4,7 @@ import neuralNet.neuron.*;
 
 import java.util.*;
 
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 
 public class Ceiling implements FunctionWithInputs.Tweakable<Ceiling> {
     public static CachingNeuronUsingTweakableFunction makeNeuron(short ceiling) {

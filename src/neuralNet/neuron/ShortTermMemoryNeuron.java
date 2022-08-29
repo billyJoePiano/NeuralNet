@@ -2,9 +2,10 @@ package neuralNet.neuron;
 
 import neuralNet.network.*;
 
+import java.io.*;
 import java.util.*;
 
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 import static neuralNet.util.Util.*;
 
 /**
@@ -47,11 +48,16 @@ public class ShortTermMemoryNeuron extends CachingNeuron
      */
     public final int fadeOut;
 
-    private final double[] memory;
-    private int index = 0;
-    private int size = 0;
+    private transient double[] memory;
+    private transient int index = 0;
+    private transient int size = 0;
 
-    private short nextOutput;
+    private transient short nextOutput;
+
+    protected Object readResolve() throws ObjectStreamException {
+        this.memory = new double[this.delay + this.fadeIn + this.length + this.fadeOut];
+        return super.readResolve();
+    }
 
     /**
      * Behaves as an immediate short-term memory ... the most recent round (previous round) is at full weight for

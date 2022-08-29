@@ -139,6 +139,11 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     }
 
     @Override
+    public boolean addConsumers(Collection<? extends SignalConsumer> consumers) {
+        return false;
+    }
+
+    @Override
     public boolean removeConsumer(SignalConsumer consumer) {
         return false;
     }

@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public class MultiplyCircular implements FunctionWithInputs {
-    public static final MultiplyCircular instance = new MultiplyCircular();
+public enum MultiplyCircular implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private MultiplyCircular() { }
 
     @Override
     public int getMinInputs() {
@@ -45,9 +42,5 @@ public class MultiplyCircular implements FunctionWithInputs {
         }
 
         return (short)Math.round(product * MAX_PLUS_ONE - ZEROIZE);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

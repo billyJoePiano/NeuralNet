@@ -4,101 +4,104 @@ import neuralNet.network.*;
 
 import java.util.*;
 
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 
-public class FixedValueProvider implements SignalProvider.Tweakable<FixedValueProvider> {
-    public static final FixedValueProvider MIN = new FixedValueProvider(Short.MIN_VALUE);
-    public static final FixedValueProvider MAX = new FixedValueProvider(Short.MAX_VALUE);
-    public static final FixedValueProvider ZERO = new FixedValueProvider((short)0);
+public class FixedValueProvider extends CachingProvider
+        implements SignalProvider.Tweakable<FixedValueProvider> {
+
+    private static final FixedValueProvider MIN = new FixedValueProvider(Short.MIN_VALUE);
+    private static final FixedValueProvider MAX = new FixedValueProvider(Short.MAX_VALUE);
+    private static final FixedValueProvider ZERO = new FixedValueProvider();
+
+    public static FixedValueProvider makeZero() {
+        return ZERO.clone();
+    }
+
+    public static FixedValueProvider makeMin() {
+        return MIN.clone();
+    }
+
+    public static FixedValueProvider makeMax() {
+        return MAX.clone();
+    }
 
     public final long lastTweaked;
-    public final short output;
+    public final short value;
+
     private transient List<Param> tweakingParams;
 
     public FixedValueProvider() {
-        this((short)0);
+        this(0);
     }
 
-    public FixedValueProvider(final short output, final long lastTweaked) {
-        this.output = output;
-        this.lastTweaked = lastTweaked;
-    }
-
-    public FixedValueProvider(final short output) {
-        this.output = output;
+    public FixedValueProvider(final int value) {
+        if (value > Short.MAX_VALUE || value < Short.MIN_VALUE) throw new IllegalArgumentException();
+        this.value = (short)value;
         this.lastTweaked = -1;
     }
 
+    public FixedValueProvider(final short value) {
+        this.value = value;
+        this.lastTweaked = -1;
+    }
+
+    public FixedValueProvider(FixedValueProvider cloneFrom) {
+        super(cloneFrom);
+        this.value = cloneFrom.value;
+        this.lastTweaked = cloneFrom.lastTweaked;
+    }
+
+    public FixedValueProvider(FixedValueProvider cloneFrom, final short value, final boolean forTrial) {
+        super(cloneFrom);
+        this.value = value;
+        this.lastTweaked = forTrial ? NeuralNet.getCurrentGeneration() : cloneFrom.lastTweaked;
+    }
+
+    @Override
     public short getOutput() {
-        return this.output;
+        return this.value;
+    }
+
+    @Override
+    protected short calcOutput() {
+        return this.value;
     }
 
     @Override
     public List<Param> getTweakingParams() {
         if (this.tweakingParams == null) {
-            this.tweakingParams = List.of(new Param(this.output));
+            this.tweakingParams = List.of(new Param(this.value));
         }
         return this.tweakingParams;
     }
 
     @Override
     public FixedValueProvider tweak(short[] params, boolean forTrial) {
-        if (forTrial) {
-            return new FixedValueProvider((short) (this.output + params[0]), NeuralNet.getCurrentGeneration());
-
-        } else if (params[0] == 0) {
-            return this;
-
-        } else {
-            return new FixedValueProvider((short) (this.output + params[0]), this.lastTweaked);
-        }
+        return new FixedValueProvider(this, (short) (this.value + params[0]), forTrial);
     }
 
     @Override
     public short[] getTweakingParams(FixedValueProvider toAchieve) {
-        return toAchieve(this.output, toAchieve.output);
+        return toAchieve(this.value, toAchieve.value);
     }
 
     @Override
-    public Set<SignalConsumer> getConsumers() {
-        return null;
-    }
-
-    @Override
-    public boolean addConsumer(SignalConsumer consumer) {
-        return false;
-    }
-
-    @Override
-    public boolean removeConsumer(SignalConsumer consumer) {
-        return false;
-    }
-
-    //@Override
-    //public void clearConsumers() { }
-
-    @Override
-    public boolean replaceConsumer(SignalConsumer oldConsumer, SignalConsumer newConsumer) {
-        return false;
-    }
-
-    @Override
-    public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) { }
+    public void before() { }
 
     @Override
     public void reset() { }
 
     @Override
     public FixedValueProvider clone() {
-        return this;
+        return new FixedValueProvider(this);
     }
 
     public int hashCode() {
-        return this.output;
+        return this.value;
     }
 
     public String toString() {
-        return "FixedValue(" + this.output + ")";
+        return "FixedValue(" + this.value + ")";
     }
 
     @Override

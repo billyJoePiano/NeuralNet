@@ -5,16 +5,14 @@ import neuralNet.neuron.*;
 import java.util.*;
 
 /**
- * Negates the input plus one.  This maps every negative value to a positive value 1-to-1, where zero
- * is considered a positive values.  Therefore:
- *        0 maps to -1
- *      192 maps to -193
- *  -32,768 maps to 32,767    (min and max values, respectively)
- *          ETC
+ * Negates the input value, except maps -32,768 to 32,767, and vice-versa.  Zero is mapped to itself.
+ * Note that there is NOT a perfect 1-to-1 mapping of negative values to positive values because of
+ * this.  For a true 1-to-1 mapping, use NegateBalanced
  *
- * This function is the perfect inverse of itself, for all input values
+ * This function is the inverse of itself for all inputs EXCEPT -32,767 (one more than Short.MIN_VALUE)
+ * which first maps to 32,767, then back to -32,768 (Short.MIN_VALUE)
  */
-public enum NegateBalanced implements FunctionWithInputs {
+public enum Negate implements FunctionWithInputs {
     INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
@@ -41,6 +39,9 @@ public enum NegateBalanced implements FunctionWithInputs {
 
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
-        return (short) -(((int)inputs.get(0).getOutput()) + 1);
+        short input = inputs.get(0).getOutput();
+        if (input == Short.MAX_VALUE) return Short.MIN_VALUE;
+        if (input == Short.MIN_VALUE) return Short.MAX_VALUE;
+        else return (short)-input;
     }
 }

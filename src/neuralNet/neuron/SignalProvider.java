@@ -14,6 +14,8 @@ public interface SignalProvider extends Serializable {
      */
     public boolean addConsumer(SignalConsumer consumer);
 
+    public boolean addConsumers(Collection<? extends SignalConsumer> consumers);
+
     /**
      * When implementing, return true if the consumer was already in the set of consumers, false if it was not.
      * More formally, return true if the set of consumers was mutated as a result of this call.
@@ -58,7 +60,7 @@ public interface SignalProvider extends Serializable {
     public SignalProvider clone();
 
     public interface Tweakable<P extends SignalProvider.Tweakable<P>>
-                    extends SignalProvider, neuralNet.function.Tweakable<P> {
+                    extends SignalProvider, neuralNet.evolve.Tweakable<P> {
 
         /**
          * Indicates the last generation where this node was optimized through a series of tweaking trials.

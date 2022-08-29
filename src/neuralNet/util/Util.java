@@ -3,6 +3,7 @@ package neuralNet.util;
 import net.openhft.affinity.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 public abstract class Util {
     private Util() { throw new IllegalStateException(); }
@@ -142,6 +143,24 @@ public abstract class Util {
         }
         return max;
     }
+
+    public static <T> T pickRandomExcept(List<T> list, T except) {
+        boolean nothingDifferent = true;
+        for (T item : list) {
+            if (item != except) {
+                nothingDifferent = false;
+                break;
+            }
+        }
+        if (nothingDifferent) throw new IllegalArgumentException();
+
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        while (true) {
+            T result = list.get(rand.nextInt(list.size()));
+            if (result != except) return result;
+        }
+    }
+
 
 
     private static Map<Integer, Thread> affinities = new TreeMap();

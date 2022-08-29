@@ -1,11 +1,12 @@
 package neuralNet.function;
 
+import neuralNet.evolve.*;
 import neuralNet.neuron.*;
 
 import java.util.*;
 
 import static neuralNet.util.Util.*;
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 
 /**
  *

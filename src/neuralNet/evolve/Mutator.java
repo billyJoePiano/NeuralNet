@@ -2,13 +2,16 @@ package neuralNet.evolve;
 
 import neuralNet.network.*;
 
-public interface Mutator<S extends Sensable<S>,
-                            P extends DecisionProvider<S, P, C>,
-                            C extends DecisionConsumer<S, C, ?>> {
+import java.util.*;
 
-    default public long getGeneration() {
+public interface Mutator<//S extends Sensable<S>,
+                            P extends DecisionProvider<?, P, ?>> {
+                            //C extends DecisionConsumer<S, C, ?>> {
 
-    }
+    public P getDecisionProvider();
+    public void setDecisionProvider(P decisionProvider);
+
+    public List<P> mutate(int count);
 
 
 }

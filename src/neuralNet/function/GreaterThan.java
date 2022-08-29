@@ -2,28 +2,25 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 /**
  * AKA AdditionNormalized
  */
-public class GreaterThan implements FunctionWithInputs {
-    public static final GreaterThan instance = new GreaterThan();
+public enum GreaterThan implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingFunction(instance, Arrays.asList(value, comparedTo));
+        return new CachingNeuronUsingFunction(INSTANCE, Arrays.asList(value, comparedTo));
     }
-
-    private GreaterThan() { }
 
     @Override
     public int getMinInputs() {
@@ -43,9 +40,5 @@ public class GreaterThan implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return inputs.get(0).getOutput() > inputs.get(1).getOutput() ? Short.MAX_VALUE : Short.MIN_VALUE;
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

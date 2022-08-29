@@ -5,7 +5,7 @@ import neuralNet.network.*;
 
 import java.util.*;
 
-import static neuralNet.function.Tweakable.*;
+import static neuralNet.evolve.Tweakable.*;
 import static neuralNet.util.Util.*;
 
 /**
@@ -15,22 +15,22 @@ import static neuralNet.util.Util.*;
  */
 public class StaticWaveProvider extends CachingProvider implements SignalProvider.Tweakable<StaticWaveProvider> {
     public static final List<WaveFunction> WAVE_FUNCTIONS =
-            List.of(SineWave.instance, TriangleWave.instance, SawWave.instance, SquareWave.instance);
+            List.of(SineWave.INSTANCE, TriangleWave.INSTANCE, SawWave.INSTANCE, SquareWave.INSTANCE);
 
     public static final List<Param> WAVE_FUNCTION_PARAMS =
             List.of(new Param(0, 3), new Param(-1, 2), new Param(-2, 1), new Param(-3, 0));
 
     public static final List<List<Param>> MUTATION_PARAMS_POS = List.of(
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SineWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, TriangleWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SawWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SquareWave.instance.getMutationParam()));
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SineWave.INSTANCE.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, TriangleWave.INSTANCE.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SawWave.INSTANCE.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.CIRCULAR, SquareWave.INSTANCE.getMutationParam()));
 
     public static final List<List<Param>> MUTATION_PARAMS_NEG = List.of(
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SineWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, TriangleWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SawWave.instance.getMutationParam()),
-            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SquareWave.instance.getMutationParam()));
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SineWave.INSTANCE.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, TriangleWave.INSTANCE.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SawWave.INSTANCE.getMutationParam()),
+            List.of(Param.DEFAULT, Param.BOOLEAN, Param.CIRCULAR, SquareWave.INSTANCE.getMutationParam()));
 
 
     public final long lastTweaked;
@@ -44,7 +44,7 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
     public final double incrementPerRound;
     public final boolean increment2orMore; // when the magnitude (abs) of the increment is >= 2.0
 
-    private double currentPhase;
+    private transient double currentPhase;
 
     public StaticWaveProvider(WaveFunction waveFunction, double period, double phase) {
         super();

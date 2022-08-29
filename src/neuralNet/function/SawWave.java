@@ -2,23 +2,21 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
-
-public class SawWave implements WaveFunction {
-    public static final SawWave instance = new SawWave();
+public enum SawWave implements WaveFunction {
+    INSTANCE;
 
     public static StaticWaveProvider makeNeuron(double period, double phase) {
-        return new StaticWaveProvider(instance, period, phase);
+        return new StaticWaveProvider(INSTANCE, period, phase);
     }
 
     public static VariableWaveNeuron makeNeuron(SignalProvider period, SignalProvider phase,
                                                 double minPeriod, double maxPeriod) {
 
-        return new VariableWaveNeuron(period, phase, instance, minPeriod, maxPeriod);
+        return new VariableWaveNeuron(period, phase, INSTANCE, minPeriod, maxPeriod);
     }
 
     public static VariableWaveNeuron makeNeuron(SignalProvider period, double minPeriod, double maxPeriod) {
-        return new VariableWaveNeuron(period, instance, minPeriod, maxPeriod);
+        return new VariableWaveNeuron(period, INSTANCE, minPeriod, maxPeriod);
     }
 
     @Override
@@ -29,9 +27,5 @@ public class SawWave implements WaveFunction {
         } else {
             return phasePosition - 2.0;
         }
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

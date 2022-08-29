@@ -1,4 +1,4 @@
-package neuralNet.function;
+package neuralNet.evolve;
 
 import java.util.*;
 
@@ -35,7 +35,7 @@ public interface Tweakable<F extends Tweakable<F>> {
 
 
 
-    public class Param {
+    public static class Param {
         public static final Param DEFAULT = new Param(Short.MIN_VALUE, Short.MAX_VALUE);
         public static final Param CIRCULAR = new Param(Short.MIN_VALUE, Short.MAX_VALUE, true);
 
@@ -67,6 +67,7 @@ public interface Tweakable<F extends Tweakable<F>> {
         }
 
         public Param(final short min, final short max, final boolean circular) {
+            if (min > max) throw new IllegalArgumentException();
             this.min = min;
             this.max = max;
             this.circular = circular;
@@ -77,7 +78,7 @@ public interface Tweakable<F extends Tweakable<F>> {
         }
 
         public Param(final int min, final int max, final boolean circular) {
-            if (Math.min(min, max) < Short.MIN_VALUE || Math.max(min, max) > Short.MAX_VALUE) {
+            if (min > max || Math.min(min, max) < Short.MIN_VALUE || Math.max(min, max) > Short.MAX_VALUE) {
                 throw new IllegalArgumentException();
             }
             this.min = (short)min;
@@ -157,7 +158,7 @@ public interface Tweakable<F extends Tweakable<F>> {
                 diff--; //offset adjustment, reverse of transformByMagnitudeAndSign
             }
 
-            result[i] = roundClip(diff);
+            result[i / 2] = roundClip(diff);
         }
 
         return result;
@@ -190,7 +191,7 @@ public interface Tweakable<F extends Tweakable<F>> {
         coefficient = Math.pow(4.0, coefficient /  MAX_PLUS_ONE);
 
         if (sign != 0) {
-            if ((sign == 1 && currentValue > 0) || (sign == -1 && currentValue < 0)) {
+            if ((sign == 1 && currentValue < 0) || (sign == -1 && currentValue > 0)) {
                 currentValue = -currentValue;
 
             } else {

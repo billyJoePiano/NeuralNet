@@ -2,7 +2,6 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -10,22 +9,20 @@ import static neuralNet.util.Util.*;
 /**
  * AKA AdditionNormalized
  */
-public class Average implements FunctionWithInputs {
-    public static final Average instance = new Average();
+public enum Average implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private Average() { }
 
     @Override
     public int getMinInputs() {
@@ -48,9 +45,5 @@ public class Average implements FunctionWithInputs {
         }
 
         return roundClip((double)sum / count);
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

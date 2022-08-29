@@ -2,27 +2,24 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public class DifferenceNormalized implements FunctionWithInputs {
-    public static final DifferenceNormalized instance = new DifferenceNormalized();
+public enum DifferenceNormalized implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider value, SignalProvider comparedTo) {
-        return new CachingNeuronUsingFunction(instance, Arrays.asList(value, comparedTo));
+        return new CachingNeuronUsingFunction(INSTANCE, Arrays.asList(value, comparedTo));
     }
-
-    private DifferenceNormalized() { }
 
     @Override
     public int getMinInputs() {
@@ -42,9 +39,5 @@ public class DifferenceNormalized implements FunctionWithInputs {
     @Override
     public short calcOutput(List<SignalProvider> inputs) {
         return clip(Math.floor(((double)((int)inputs.get(0).getOutput() - (int)inputs.get(1).getOutput()) / 2.0)));
-    }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
     }
 }

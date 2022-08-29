@@ -2,25 +2,22 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
-import java.io.*;
 import java.util.*;
 
-public class Max implements FunctionWithInputs {
-    public static final Max instance = new Max();
+public enum Max implements FunctionWithInputs {
+    INSTANCE;
 
     public static CachingNeuronUsingFunction makeNeuron() {
-        return new CachingNeuronUsingFunction(instance);
+        return new CachingNeuronUsingFunction(INSTANCE);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
 
     public static CachingNeuronUsingFunction makeNeuron(SignalProvider ... inputs) {
-        return new CachingNeuronUsingFunction(instance, inputs);
+        return new CachingNeuronUsingFunction(INSTANCE, inputs);
     }
-
-    private Max() { }
 
     @Override
     public int getMinInputs() {
@@ -45,9 +42,4 @@ public class Max implements FunctionWithInputs {
 
         return max;
     }
-
-    private Object readResolve() throws ObjectStreamException {
-        return instance;
-    }
 }
-

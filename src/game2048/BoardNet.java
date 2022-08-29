@@ -28,7 +28,7 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
         };
 
     private final Sensor[][] matrix = makeSensors();
-    public final List<Sensor> sensors = List.of(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
+    private final List<Sensor> sensors = List.of(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
                                                 matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3],
                                                 matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3],
                                                 matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]);
@@ -39,11 +39,11 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
     public BoardNet() { }
 
     public BoardNet(BoardNet cloneFrom) {
-        super(cloneFrom);
+        this.cloneNeurons(cloneFrom, null);
     }
 
     public BoardNet(BoardNet cloneFrom, Map<SignalProvider, SignalProvider> substitutions) {
-        super(cloneFrom, substitutions);
+        this.cloneNeurons(cloneFrom, substitutions);
     }
 
     private Sensor[][] makeSensors() {
@@ -82,7 +82,7 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
         return this.matrix.clone();
     }
 
-    public class Sensor extends CachingProvider implements SensorNode<BoardInterface, BoardNet> {
+    public class Sensor extends NeuralNet<BoardInterface, BoardNet, BoardInterface>.Sensor {
         public final int row;
         public final int col;
 
@@ -92,30 +92,10 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
         }
 
         @Override
-        public BoardInterface getSensedObject() {
-            return BoardNet.this.getSensedObject();
-        }
-
-        @Override
-        public BoardNet getDecisionProvider() {
-            return BoardNet.this;
-        }
-
-        @Override
-        public void sense() {
-            this.setCache(NEURAL_OUTPUTS[this.getSensedObject().getTile(this.row, this.col)]);
-        }
-
-        @Override
-        protected short calcOutput() {
-            //sense() should always be called before this, therefore the cache should always be
-            // already-populated when getOutput() is called, and this method should never be needed
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public CachingProvider clone() throws UnsupportedOperationException {
-            throw new UnsupportedOperationException();
+        public short sense() {
+            short val = NEURAL_OUTPUTS[this.getSensedObject().getTile(this.row, this.col)];
+            this.setCache(val);
+            return val;
         }
     }
 
