@@ -12,10 +12,7 @@ public class FixedValueProvider extends CachingProvider
     private static final FixedValueProvider MIN = new FixedValueProvider(Short.MIN_VALUE);
     private static final FixedValueProvider MAX = new FixedValueProvider(Short.MAX_VALUE);
     private static final FixedValueProvider ZERO = new FixedValueProvider();
-
-    public static FixedValueProvider makeZero() {
-        return ZERO.clone();
-    }
+    private static final FixedValueProvider NEG_ONE = new FixedValueProvider(-1);
 
     public static FixedValueProvider makeMin() {
         return MIN.clone();
@@ -23,6 +20,14 @@ public class FixedValueProvider extends CachingProvider
 
     public static FixedValueProvider makeMax() {
         return MAX.clone();
+    }
+
+    public static FixedValueProvider makeZero() {
+        return ZERO.clone();
+    }
+
+    public static FixedValueProvider makeNegOne() {
+        return NEG_ONE.clone();
     }
 
     public final long lastTweaked;

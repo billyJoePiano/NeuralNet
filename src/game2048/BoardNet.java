@@ -44,8 +44,10 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
         this.cloneNeurons(cloneFrom, null, null);
     }
 
-    public BoardNet(BoardNet cloneFrom, Map<SignalProvider, SignalProvider> substitutions) {
-        this.cloneNeurons(cloneFrom, substitutions, null);
+    public BoardNet(BoardNet cloneFrom,
+                    Map<SignalProvider, SignalProvider> providersMap,
+                    Map<SignalConsumer, SignalConsumer> consumersMap) {
+        this.cloneNeurons(cloneFrom, providersMap, consumersMap);
     }
 
     private Sensor[][] makeSensors() {
@@ -66,8 +68,10 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
     }
 
     @Override
-    public BoardNet cloneWith(Map<SignalProvider, SignalProvider> substitutions) {
-        return new BoardNet(this, substitutions);
+    public BoardNet cloneWith(Map<SignalProvider, SignalProvider> providersMap,
+                              Map<SignalConsumer, SignalConsumer> consumersMap) {
+
+        return new BoardNet(this, providersMap, consumersMap);
     }
 
     @Override

@@ -17,6 +17,7 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
     private N net;
     private Set<SignalConsumer> needsRepopulation;
+    private List<ComplexNeuronMember> complexNeurons;
 
     //private final Map<Set<SignalProvider>, N> clonedNets;
 
@@ -33,12 +34,19 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
     @Override
     public void setDecisionProvider(N decisionProvider) {
-        if (this.net != null && this.net != decisionProvider) throw new UnsupportedOperationException();
-        this.net = decisionProvider;
+        if (this.net == null) this.net = decisionProvider;
+        else if (this.net != decisionProvider) throw new UnsupportedOperationException();
     }
 
     public List<N> mutate(int count) {
         if (count < 1) throw new IllegalArgumentException();
+
+        this.complexNeurons = new LinkedList<>();
+        for (SignalProvider neuron : this.net.getNeurons()) {
+            if (neuron instanceof ComplexNeuronMember complex && complex.getPrimaryNeuron() == complex) {
+                this.complexNeurons.add(complex);
+            }
+        }
 
         List<N> list = new ArrayList<>(count);
         ThreadLocalRandom rand = ThreadLocalRandom.current();

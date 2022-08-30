@@ -6,8 +6,7 @@ import neuralNet.neuron.*;
 import java.io.*;
 import java.util.*;
 
-public class ComplexNeuron extends CachingNeuron
-        implements ComplexNeuronMember {
+public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember {
 
     private final int numInputs;
     private final int numOutputs;
@@ -19,6 +18,8 @@ public class ComplexNeuron extends CachingNeuron
 
     private final InternalNet.Output decisionNode0;
     private final List<ComplexNeuronMember> members;
+
+    private transient Fitness fitness;
 
     @Override
     protected Object readResolve() throws ObjectStreamException {
@@ -49,12 +50,15 @@ public class ComplexNeuron extends CachingNeuron
         this.members = this.makeOutputs();
         this.inputSensors = this.net.sensors;
         this.addConsumers(this.members);
+        this.fitness = cloneFrom.fitness;
     }
 
-    public ComplexNeuron(ComplexNeuron cloneFrom, int numInputs, int numOutputs, Map<SignalProvider, SignalProvider> substitutions) {
+    public ComplexNeuron(ComplexNeuron cloneFrom, int numInputs, int numOutputs,
+                         Map<SignalProvider, SignalProvider> providersMap,
+                         Map<SignalConsumer, SignalConsumer> consumersMap) {
         this.numInputs = numInputs;
         this.numOutputs = numOutputs;
-        this.net = new InternalNet(cloneFrom.net, substitutions);
+        this.net = new InternalNet(cloneFrom.net, providersMap, consumersMap);
         this.decisionNode0 = this.net.decisionNodes.get(0);
         this.members = this.makeOutputs();
         this.inputSensors = this.net.sensors;
@@ -119,6 +123,11 @@ public class ComplexNeuron extends CachingNeuron
     @Override
     public ComplexNeuronMember getPrimaryNeuron() {
         return this;
+    }
+
+    @Override
+    public boolean isPrimaryNeuron() {
+        return true;
     }
 
     @Override
@@ -220,6 +229,11 @@ public class ComplexNeuron extends CachingNeuron
         }
 
         @Override
+        public boolean isPrimaryNeuron() {
+            return false;
+        }
+
+        @Override
         public List<ComplexNeuronMember> getMembers() {
             return ComplexNeuron.this.members;
         }
@@ -292,12 +306,15 @@ public class ComplexNeuron extends CachingNeuron
 
         private InternalNet() { }
 
-        private InternalNet(InternalNet cloneFrom) {
-            this.cloneNeurons(cloneFrom, null); //TODO provide substitutions?
+        private InternalNet(NeuralNet cloneFrom) {
+            this.cloneNeurons(cloneFrom, null, null);
         }
 
-        private InternalNet(InternalNet cloneFrom, Map<SignalProvider, SignalProvider> substitutions) {
-            this.cloneNeurons(cloneFrom, substitutions); //TODO add substitutions?
+        private InternalNet(NeuralNet cloneFrom,
+                            Map<SignalProvider, SignalProvider> providersMap,
+                            Map<SignalConsumer, SignalConsumer> consumersMap) {
+
+            this.cloneNeurons(cloneFrom, providersMap, consumersMap);
         }
 
 
@@ -318,6 +335,12 @@ public class ComplexNeuron extends CachingNeuron
         }
 
         @Override
+        public InternalNet traceNeuronsSet() {
+            ComplexNeuron.this.fitness = null;
+            return super.traceNeuronsSet();
+        }
+
+        @Override
         public List<Input> getSensors() {
             return this.sensors;
         }
@@ -333,7 +356,7 @@ public class ComplexNeuron extends CachingNeuron
         }
 
         @Override
-        public InternalNet cloneWith(Map substitutions) {
+        public InternalNet cloneWith(Map p, Map c) {
             throw new UnsupportedOperationException();
         }
 

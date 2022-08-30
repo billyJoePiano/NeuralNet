@@ -27,6 +27,7 @@ public abstract class Util {
     public static final int DEZEROIZE_NEGATIVE_INT = RANGE_INT - ZEROIZE_INT;
 
     public static final double MAX_PLUS_ONE = (double)Short.MAX_VALUE + 1;
+    public static final int MAX_PLUS_ONE_INT = (int)Short.MAX_VALUE + 1;
     public static final double HALF_MAX_PLUS_ONE = ((double)Short.MAX_VALUE + 1) / 2;
     public static final double QUARTER_MAX_PLUS_ONE = ((double)Short.MAX_VALUE + 1) / 4;
 
@@ -42,6 +43,7 @@ public abstract class Util {
     public static final double TWO_PI = Math.PI * 2;
 
     public static final double BILLION = 1_000_000_000;
+    public static final double MILLION = 1__000_000;
 
     /**
      * A true modulo operation (NOT a remainder) where all results are >= 0
@@ -291,5 +293,36 @@ public abstract class Util {
             providersMap.put(oldProvider, newProvider);
         }
         return providersMap;
+    }
+
+    /**
+     * Removes all elements from the two sets of consumers and providers if they are not also found in the other set,
+     * EXCEPT when the element is not instanceof both SignalConsumer and SignalProvider
+     */
+    public static void intersectionFilterTypeAware(Set<SignalProvider> providers, Set<SignalConsumer> consumers) {
+        for (Iterator<SignalConsumer> iterator = consumers.iterator();
+                iterator.hasNext();) {
+
+            SignalConsumer consumer = iterator.next();
+            if (consumer instanceof SignalProvider provider) {
+                if (!providers.contains(provider)) iterator.remove();
+            }
+        }
+
+        for (Iterator<SignalProvider> iterator = providers.iterator();
+                iterator.hasNext();) {
+
+            SignalProvider provider = iterator.next();
+            if (provider instanceof SignalConsumer consumer) {
+                if (!consumers.contains(consumer)) iterator.remove();
+            }
+        }
+    }
+
+    public static boolean containsOne(Collection<?> c1, Collection<?> c2) {
+        for (Object obj : c1) {
+            if (c2.contains(obj)) return true;
+        }
+        return false;
     }
 }

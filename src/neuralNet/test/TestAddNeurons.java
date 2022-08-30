@@ -32,7 +32,15 @@ public class TestAddNeurons {
         }
 
         for (BoardNet net : lastGen) {
-            net.validateNeuronsSet();
+            net.traceNeuronsSet();
+        }
+
+        BoardInterface board = new BoardInterface();
+
+        for (List<BoardNet> gen : generations) {
+            for (BoardNet net : gen) {
+
+            }
         }
 
 

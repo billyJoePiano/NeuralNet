@@ -4,7 +4,7 @@ import java.util.*;
 
 public class AccumulatedAverage {
     private final List<Double> accumulated = new ArrayList<>();
-    private Double cache = null;
+    private Double cachedAvg = null;
 
     public AccumulatedAverage() { }
 
@@ -32,7 +32,7 @@ public class AccumulatedAverage {
         if (addToStore != null) {
             this.accumulated.add(addToStore);
         }
-        this.cache = null;
+        this.cachedAvg = null;
     }
 
     public double addAndGetAverage(double value) {
@@ -79,11 +79,11 @@ public class AccumulatedAverage {
             this.accumulated.add(addToStore);
         }
 
-        return this.cache = avg;
+        return this.cachedAvg = avg;
     }
 
     public double getAverage() {
-        if (this.cache != null) return cache;
+        if (this.cachedAvg != null) return cachedAvg;
 
         double avg = 0;
         double weightSum = 0;
@@ -99,6 +99,6 @@ public class AccumulatedAverage {
             currentWeight *= 2;
         }
 
-        return this.cache = avg;
+        return this.cachedAvg = avg;
     }
 }
