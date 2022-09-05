@@ -49,15 +49,25 @@ public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
      */
     public final int fadeOut;
 
-    private transient double[] memory;
+    private final transient double[] memory;
     private transient int index = 0;
     private transient int size = 0;
 
     private transient short nextOutput;
 
-    protected Object readResolve() throws ObjectStreamException {
-        this.memory = new double[this.delay + this.fadeIn + this.length + this.fadeOut];
-        return super.readResolve();
+    private Object readResolve() throws ObjectStreamException {
+        return new ShortTermMemoryNeuron(this, null);
+    }
+
+    private ShortTermMemoryNeuron(ShortTermMemoryNeuron deserializedFrom, Void v) {
+        super(deserializedFrom, null);
+        this.lastTweaked = deserializedFrom.lastTweaked;
+        this.defaultVal = deserializedFrom.defaultVal;
+        this.delay = deserializedFrom.delay;
+        this.fadeIn = deserializedFrom.fadeIn;
+        this.length = deserializedFrom.length;
+        this.fadeOut = deserializedFrom.fadeOut;
+        this.memory = new double[delay + fadeIn + length + fadeOut];
     }
 
     /**
@@ -351,7 +361,7 @@ public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
 
     @Override
     protected long calcHash() {
-        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
+        return HASH_HEADER ^ Long.rotateRight(this.inputsMutable.get(0).getNeuralHash(), 17)
                 ^ Long.rotateLeft(this.defaultVal & 0xffff, 51)
                 ^ Long.rotateLeft(this.delay, 37)  ^ Long.rotateLeft(this.fadeIn, 29)
                 ^ Long.rotateLeft(this.length, 17) ^ Long.rotateLeft(this.fadeOut, 7);

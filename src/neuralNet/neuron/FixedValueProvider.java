@@ -2,6 +2,7 @@ package neuralNet.neuron;
 
 import neuralNet.network.*;
 
+import java.io.*;
 import java.lang.invoke.*;
 import java.util.*;
 
@@ -35,6 +36,16 @@ public class FixedValueProvider extends CachingProvider
     public final short value;
 
     private transient List<Param> tweakingParams;
+
+    private Object readResolve() throws ObjectStreamException {
+        return new FixedValueProvider(this, null);
+    }
+
+    private FixedValueProvider(FixedValueProvider deserializedFrom, Void v) {
+        super(deserializedFrom, v);
+        this.lastTweaked = deserializedFrom.lastTweaked;
+        this.value = deserializedFrom.value;
+    }
 
     public FixedValueProvider() {
         this(0);

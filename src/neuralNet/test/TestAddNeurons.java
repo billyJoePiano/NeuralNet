@@ -220,24 +220,22 @@ public class TestAddNeurons extends Thread {
         filterHashes();
     }
 
-    private static Set<BoardNet> iteration(Set<BoardNet> fittest, long gen) {
+    private static void iteration() {
         Set<BoardNet> previousNets = currentNets;
         currentNets = makeMutations(fittest);
 
         currentNets.addAll(legacy.keySet());
 
-        dispatchWorkerThreads(gen);
-        doWaitingTasks(gen - 1, fittest, previousNets);
+        dispatchWorkerThreads();
+        doWaitingTasks(previousNets);
 
         Collections.sort(fitnesses);
 
-        fittest = new LinkedHashSet<>();
+        fittest = new ArrayList<>(RETAIN_BEST);
         for (BoardNetFitness fitness : fitnesses) {
             fittest.add(fitness.net);
             if (fittest.size() >= RETAIN_BEST) break;
         }
-
-        return fittest;
     }
 
     public static int[] mutationCounts(int fittestCount, int netsToMake) {
@@ -315,7 +313,7 @@ public class TestAddNeurons extends Thread {
         return makeMutations;
     }
 
-    private static Set<BoardNet> makeMutations(Set<BoardNet> fittest) {
+    private static Set<BoardNet> makeMutations(List<BoardNet> fittest) {
         Set<BoardNet> newGen = new LinkedHashSet<>(NETS_PER_GENERATION + legacy.size());
         newGen.addAll(fittest);
 
@@ -348,7 +346,7 @@ public class TestAddNeurons extends Thread {
         }
     }
 
-    private static void doWaitingTasks(long gen, Set<BoardNet> previousFittest, Set<BoardNet> previousNets) {
+    private static void doWaitingTasks(long gen, Set<BoardNet> previousNets) {
         // while the worker threads are going, calculate the hashes and add them to the hashes map.
         // Iterate in REVERSE order as the worker threads, so there is less chance
         // of the worker threads blocking main or vice-versa, while calculating the hashes
@@ -363,10 +361,10 @@ public class TestAddNeurons extends Thread {
             hashes.put(hash, net);
         }
 
-        if (previousFittest != previousNets) {
+        if (fittest != previousNets) {
             // they are the same instance only on the first iteration, in which case we shouldn't process them
             // check legacy is processing from the *PREVIOUS* round
-            checkLegacy(previousFittest, previousNets, gen - 1);
+            checkLegacy(previousNets, gen - 1);
         }
 
         Set<BoardNet> legaciesToCheck = new LinkedHashSet<>(legacy.keySet());
@@ -456,13 +454,13 @@ public class TestAddNeurons extends Thread {
      * @param fittest
      * @param gen
      */
-    private static void checkLegacy(Set<BoardNet> fittest, Set<BoardNet> allNets, long gen) {
-        //allNets is immediately mutated to remove the fittest nets, and therefore is effectively
+    private static void checkLegacy(Set<BoardNet> previousNets, long gen) {
+        // previousNets is immediately mutated to remove the fittest nets, and therefore is effectively
         // 'notFittest'
 
         long genMinus2 = gen - 2;
         fittest.forEach(net -> {
-            allNets.remove(net);
+            previousNets.remove(net);
             if (net == EDGE_NET || net == RAND_NET) return;
             legacy.computeIfPresent(net, (n, genInterned) -> genInterned < genMinus2 ? genInterned + 2 : null);
             /** For legacies that have made it into the "fittest" set, add two to the generation interned
@@ -472,7 +470,7 @@ public class TestAddNeurons extends Thread {
              */
         });
 
-        for (BoardNet net : allNets) {
+        for (BoardNet net : previousNets) {
             if (net.generation == gen) continue;
             long interned = legacy.computeIfAbsent(net, n -> gen);
 

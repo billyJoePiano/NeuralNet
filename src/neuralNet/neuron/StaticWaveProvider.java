@@ -3,6 +3,7 @@ package neuralNet.neuron;
 import neuralNet.function.*;
 import neuralNet.network.*;
 
+import java.io.*;
 import java.lang.invoke.*;
 import java.util.*;
 
@@ -40,12 +41,30 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
 
     public final boolean sign;
     public final double phase;
-    public final double period;
+    public transient final double period;
 
-    public final double incrementPerRound;
-    public final boolean increment2orMore; // when the magnitude (abs) of the increment is >= 2.0
+    public transient final double incrementPerRound;
+    public transient final boolean increment2orMore; // when the magnitude (abs) of the increment is >= 2.0
 
     private transient double currentPhase;
+
+    private Object readResolve() throws ObjectStreamException {
+        return new StaticWaveProvider(this, (Void)null);
+    }
+
+    private StaticWaveProvider(StaticWaveProvider deserializedFrom, Void v) {
+        super(deserializedFrom, null);
+        this.lastTweaked = deserializedFrom.lastTweaked;
+        this.phase = deserializedFrom.phase;
+        this.period = deserializedFrom.period;
+        this.waveFunction = deserializedFrom.waveFunction;
+
+        this.sign = period > 0;
+        this.incrementPerRound = 2 / period;
+        this.increment2orMore = this.sign ? this.incrementPerRound >= 2.0 : this.incrementPerRound <= -2.0;
+
+        this.currentPhase = this.phase;
+    }
 
     public StaticWaveProvider(WaveFunction waveFunction, double period, double phase) {
         super();

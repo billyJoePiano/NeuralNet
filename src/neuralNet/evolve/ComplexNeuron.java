@@ -10,7 +10,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
 
     private final int numInputs;
     private final int numOutputs;
-    private transient List<SignalProvider> inputsView = this.getInputs();
+    private final transient List<SignalProvider> inputsView = this.getInputs();
 
     private final InternalNet net;
 
@@ -21,18 +21,27 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
 
     private transient Fitness fitness;
 
-    @Override
     protected Object readResolve() throws ObjectStreamException {
-        super.readResolve();
-        this.inputsView = this.getInputs();
-        return this;
+        return new ComplexNeuron(this, null);
+    }
+
+    private ComplexNeuron(ComplexNeuron deserializedFrom, Void v) {
+        super(deserializedFrom, null);
+        this.numInputs = deserializedFrom.numInputs;
+        this.numOutputs = deserializedFrom.numOutputs;
+        this.net = new InternalNet(deserializedFrom.net, null);
+        this.decisionNode0 = this.net.decisionNodes.get(0);
+        this.members = this.makeOutputs();
+        this.inputSensors = this.net.sensors;
+        this.addConsumers(this.members);
+        this.fitness = deserializedFrom.fitness;
     }
 
     public ComplexNeuron() { this(1, 1); }
 
     public ComplexNeuron(int numInputs, int numOutputs) {
+        super();
         if (numInputs < 1 || numOutputs < 1) throw new IllegalArgumentException();
-
         this.numInputs = numInputs;
         this.numOutputs = numOutputs;
         this.net = new InternalNet();
@@ -43,6 +52,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
     }
 
     public ComplexNeuron(ComplexNeuron cloneFrom) {
+        super(cloneFrom);
         this.numInputs = cloneFrom.numInputs;
         this.numOutputs = cloneFrom.numOutputs;
         this.net = new InternalNet(cloneFrom.net);
@@ -56,6 +66,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
     public ComplexNeuron(ComplexNeuron cloneFrom, int numInputs, int numOutputs,
                          Map<SignalProvider, SignalProvider> providersMap,
                          Map<SignalConsumer, SignalConsumer> consumersMap) {
+        super(cloneFrom);
         this.numInputs = numInputs;
         this.numOutputs = numOutputs;
         this.net = new InternalNet(cloneFrom.net, providersMap, consumersMap);
@@ -144,7 +155,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         private final InternalNet.Output decisionNode;
 
         private MultiOutput(InternalNet.Output decisionNode) {
-            super(ComplexNeuron.this.inputs, ComplexNeuron.this.inputsView);
+            super(ComplexNeuron.this.inputsMutable, ComplexNeuron.this.inputsView);
             this.decisionNode = decisionNode;
         }
 
@@ -309,6 +320,10 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         private final List<Input> sensors = makeSensors();
         private final List<Output> decisionNodes = makeDecisionNodes();
 
+        private InternalNet(InternalNet deserializedFrom, Void v) {
+            super(deserializedFrom, v);
+        }
+
         private InternalNet() { }
 
         private InternalNet(NeuralNet cloneFrom) {
@@ -434,9 +449,9 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         if (fromIndex >= toIndex) return;
 
         int i = fromIndex;
-        int end = Math.min(this.inputs.size(), toIndex);
+        int end = Math.min(this.inputsMutable.size(), toIndex);
         for (; i < end; i++) {
-            this.inputSensors.get(i).input = this.inputs.get(i);
+            this.inputSensors.get(i).input = this.inputsMutable.get(i);
         }
 
         for (; i < toIndex; i++) {
@@ -453,7 +468,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
     @Override
     public void addInput(SignalProvider newProvider) {
         super.addInput(newProvider);
-        int size = this.inputs.size();
+        int size = this.inputsMutable.size();
         this.updateSensorInputs(size - 1, size);
     }
 
@@ -550,7 +565,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         if (addToExistingSet.contains(this)) return;
         addToExistingSet.addAll(this.members);
 
-        for (SignalProvider neuron : this.inputs) {
+        for (SignalProvider neuron : this.inputsMutable) {
             if (neuron instanceof Neuron) {
                 ((Neuron)neuron).traceProviders(addToExistingSet);
             }

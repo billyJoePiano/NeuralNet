@@ -210,7 +210,7 @@ public class NeuralHash {
     /**
      * Returns a value between 0.0 and 1.0 indicating the degree of kinship between the
      * two lineages.  If one is a direct child of the other, or the lineages are identical
-     * (aka they are siblings) this should return 1.0
+     * (aka they are siblings of the same parent) this should return 1.0
      *
      * @param sharedHash
      * @param lineage1

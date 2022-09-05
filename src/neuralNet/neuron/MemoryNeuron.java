@@ -9,6 +9,10 @@ import java.util.*;
 public abstract class MemoryNeuron<M extends MemoryNeuron<M>> extends CachingNeuron
         implements SignalProvider.Tweakable<M>, HashCacher {
 
+    protected MemoryNeuron(M deserializedFrom, Void v) {
+        super(deserializedFrom);
+    }
+
     protected MemoryNeuron() {
         super();
     }
