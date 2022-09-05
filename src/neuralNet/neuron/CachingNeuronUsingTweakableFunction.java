@@ -16,7 +16,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
     }
 
     public CachingNeuronUsingTweakableFunction(CachingNeuronUsingTweakableFunction cloneFrom,
-                                               FunctionWithInputs.Tweakable outputFunction,
+                                               NeuralFunction.Tweakable outputFunction,
                                                boolean forTrial)
             throws NullPointerException {
 
@@ -24,14 +24,14 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
         this.lastTweaked = forTrial ? NeuralNet.getCurrentGeneration() : cloneFrom.lastTweaked;
     }
 
-    public CachingNeuronUsingTweakableFunction(FunctionWithInputs.Tweakable outputFunction)
+    public CachingNeuronUsingTweakableFunction(NeuralFunction.Tweakable outputFunction)
             throws NullPointerException {
 
         super(outputFunction);
         this.lastTweaked = -1;
     }
 
-    public CachingNeuronUsingTweakableFunction(FunctionWithInputs.Tweakable outputFunction,
+    public CachingNeuronUsingTweakableFunction(NeuralFunction.Tweakable outputFunction,
                                                List<SignalProvider> inputs)
             throws NullPointerException {
 
@@ -39,7 +39,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
         this.lastTweaked = -1;
     }
 
-    public CachingNeuronUsingTweakableFunction(FunctionWithInputs.Tweakable outputFunction,
+    public CachingNeuronUsingTweakableFunction(NeuralFunction.Tweakable outputFunction,
                                                SignalProvider... inputs) {
         super(outputFunction, inputs);
         this.lastTweaked = -1;
@@ -57,7 +57,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
 
     @Override
     public List<Param> getTweakingParams() {
-        return ((FunctionWithInputs.Tweakable)this.outputFunction).getTweakingParams();
+        return ((NeuralFunction.Tweakable)this.outputFunction).getTweakingParams();
     }
 
     @Override
@@ -68,13 +68,13 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
     @Override
     public CachingNeuronUsingTweakableFunction tweak(short[] params, boolean forTrial) {
         return new CachingNeuronUsingTweakableFunction(this,
-                ((FunctionWithInputs.Tweakable<? extends FunctionWithInputs.Tweakable>)this.outputFunction).tweak(params),
+                ((NeuralFunction.Tweakable<? extends NeuralFunction.Tweakable>)this.outputFunction).tweak(params),
                 forTrial);
     }
 
     @Override
     public short[] getTweakingParams(CachingNeuronUsingTweakableFunction toAchieve) {
-        return ((FunctionWithInputs.Tweakable)this.outputFunction)
-                    .getTweakingParams((FunctionWithInputs.Tweakable)toAchieve.outputFunction);
+        return ((NeuralFunction.Tweakable)this.outputFunction)
+                    .getTweakingParams((NeuralFunction.Tweakable)toAchieve.outputFunction);
     }
 }

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 /**
@@ -14,8 +15,13 @@ import java.util.*;
  *
  * This function is the perfect inverse of itself, for all input values
  */
-public enum NegateBalanced implements FunctionWithInputs {
+public enum NegateBalanced implements NeuralFunction {
     INSTANCE;
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
 
     public static CachingNeuronUsingFunction makeNeuron() {
         return new CachingNeuronUsingFunction(INSTANCE);

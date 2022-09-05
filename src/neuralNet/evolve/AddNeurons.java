@@ -42,7 +42,7 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
         if (count < 1) throw new IllegalArgumentException();
 
         this.complexNeurons = new LinkedList<>();
-        for (SignalProvider neuron : this.net.getNeurons()) {
+        for (SignalProvider neuron : this.net.getProviders()) {
             if (neuron instanceof ComplexNeuronMember complex && complex.getPrimaryNeuron() == complex) {
                 this.complexNeurons.add(complex);
             }
@@ -61,12 +61,11 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
         ThreadLocalRandom rand = ThreadLocalRandom.current();
 
         N clone = this.net.clone();
-        List<SignalProvider> newProviders = new ArrayList<>(count);
-        List<SignalProvider> allProviders = new ArrayList<>(clone.getNeurons().size() + count);
+        List<SignalProvider> allProviders = new ArrayList<>(clone.getProviders().size() + count);
         List<SignalConsumer> allConsumers = new ArrayList<>(clone.getDecisionNodes().size() + allProviders.size() + count);
 
         // add existing neurons to the lists
-        allProviders.addAll(clone.getNeurons());
+        allProviders.addAll(clone.getProviders());
         allConsumers.addAll(clone.getDecisionNodes());
         for (int i = count; i < allProviders.size(); i++) {
             // skip over new neurons, by starting at 'count' index
@@ -76,6 +75,7 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
         for (int i = 0; i < count; i++) {
             SignalProvider provider = makeRandom();
+
             if (provider instanceof SignalConsumer consumer) {
                 if (!(consumer instanceof Neuron neuron)) throw new IllegalStateException();
                 int min = consumer.getMinInputs();
@@ -115,7 +115,7 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
             }
         }
 
-        return clone;
+        return clone.traceNeuronsSet();
     }
 
     private void placeInlineBefore(Neuron neuron, SignalConsumer downstreamConsumer,
@@ -240,6 +240,7 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
         List<SignalProvider> candidateInputs = this.findCandidateInputs(neuron, allProviders);
         neuron.clearInputs();
+        if (neuron.pairedInputs() && (numInputs & 0b1) == 1) numInputs++;
 
         if (neuron.inputOrderMatters()) {
             //insert the displacedProvider into the supplied index position in the inputs list, after the list is populated

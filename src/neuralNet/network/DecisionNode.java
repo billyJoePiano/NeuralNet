@@ -2,6 +2,8 @@ package neuralNet.network;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
+
 public interface DecisionNode<P extends DecisionProvider<?, P, C>,
                                 //N extends DecisionNode<P, N, C>,
                                 C extends DecisionConsumer<?, C, ?>>
@@ -52,5 +54,16 @@ public interface DecisionNode<P extends DecisionProvider<?, P, C>,
                     ^ Integer.reverse((int)other.getDecisionProvider().getRound());
 
         return myMask < otherMask ? -1 : 1;
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+
+    /**
+     * Default implementation assumes that decision node is not tweakable, does not use a function,
+     * and takes a single input.  Returns the XOR of its inputs neuralHash with its decisionId
+     * @return
+     */
+    default public long getNeuralHash() {
+        return HASH_HEADER ^ (this.getDecisionId() & 0xffffffffL) ^ Long.rotateRight(this.getInputs().get(0).getNeuralHash(), 17);
     }
 }

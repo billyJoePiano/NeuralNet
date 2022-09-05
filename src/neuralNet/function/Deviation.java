@@ -2,12 +2,18 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
 
-public enum Deviation implements FunctionWithInputs {
+public enum Deviation implements NeuralFunction {
     INSTANCE;
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
 
     public static CachingNeuronUsingFunction makeNeuron() {
         return new CachingNeuronUsingFunction(INSTANCE);

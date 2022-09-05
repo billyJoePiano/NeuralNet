@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 /**
@@ -12,8 +13,13 @@ import java.util.*;
  * This function is the inverse of itself for all inputs EXCEPT -32,767 (one more than Short.MIN_VALUE)
  * which first maps to 32,767, then back to -32,768 (Short.MIN_VALUE)
  */
-public enum Negate implements FunctionWithInputs {
+public enum Negate implements NeuralFunction {
     INSTANCE;
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
 
     public static CachingNeuronUsingFunction makeNeuron() {
         return new CachingNeuronUsingFunction(INSTANCE);

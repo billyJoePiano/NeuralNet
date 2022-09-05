@@ -3,6 +3,7 @@ package neuralNet.neuron;
 import neuralNet.function.*;
 import neuralNet.network.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
@@ -276,5 +277,16 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
 
     public String toString() {
         return "Variable" + this.waveFunction.getClass().getSimpleName();
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long getNeuralHash() {
+        long hash = HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
+                ^ Long.rotateLeft(Double.doubleToLongBits(this.periodMin), 13)
+                ^ Long.rotateLeft(Double.doubleToLongBits(this.periodMax), 17);
+
+        if (this.inputs.size() == 1) return hash;
+        return hash ^ Long.rotateRight(this.inputs.get(1).getNeuralHash(), 34); //17 * 2
     }
 }

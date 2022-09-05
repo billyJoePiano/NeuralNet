@@ -3,6 +3,7 @@ package neuralNet.neuron;
 import neuralNet.network.*;
 
 import java.io.*;
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
@@ -16,8 +17,8 @@ import static neuralNet.util.Util.*;
  * Note that delay, fadeIn, and fadeOut can all be set to zero.  Length must be at least one
  *
  */
-public class ShortTermMemoryNeuron extends CachingNeuron
-        implements SignalProvider.Tweakable<ShortTermMemoryNeuron> {
+public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
+    public static final long serialVersionUID = 2902116119404283037L;
 
     public final long lastTweaked;
     private transient List<Param> tweakingParams;
@@ -188,16 +189,28 @@ public class ShortTermMemoryNeuron extends CachingNeuron
 
         int i;
         boolean first; //flag to mark the first iteration when it starts at the ending index (below)
-        int end = this.size == this.memory.length ? this.index : this.memory.length - 1; // the index to end looping
+        int end;
 
-        if (this.delay == 0 && this.fadeIn == 0) {
+        if (this.delay == 0) {
             i = this.index;
-            first = this.size == this.memory.length;
+            if (this.size == this.memory.length) {
+                first = true;
+                end = this.index;
+
+            } else {
+                first = false;
+                end = this.memory.length - 1;
+            }
 
         } else {
-            i = this.index - this.delay;
-            if (i < 0) i += this.memory.length;
             first = false;
+            i = this.index - this.delay;
+            if (this.size == this.memory.length) {
+                end = this.index;
+                if (i < 0) i += this.memory.length;
+
+            } else if (i < 0) end = i;
+            else end = this.memory.length - 1;
         }
 
         while (true) {
@@ -236,9 +249,7 @@ public class ShortTermMemoryNeuron extends CachingNeuron
 
         weightSum += length * this.length; //more efficient than incrementing/adding to weightSum each time?
 
-        if (++this.index == this.memory.length) {
-            this.index = 0;
-        }
+        if (++this.index == this.memory.length) this.index = 0;
 
         if (weightSum == 0) {
             this.nextOutput = this.defaultVal;
@@ -252,6 +263,7 @@ public class ShortTermMemoryNeuron extends CachingNeuron
     public void reset() {
         this.nextOutput = this.defaultVal;
         this.size = 0;
+        this.index = 0;
         super.reset();
     }
 
@@ -333,5 +345,15 @@ public class ShortTermMemoryNeuron extends CachingNeuron
         params[0] = clip((int)toAchieve.defaultVal - (int)this.defaultVal);
 
         return params;
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+
+    @Override
+    protected long calcHash() {
+        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
+                ^ Long.rotateLeft(this.defaultVal & 0xffff, 51)
+                ^ Long.rotateLeft(this.delay, 37)  ^ Long.rotateLeft(this.fadeIn, 29)
+                ^ Long.rotateLeft(this.length, 17) ^ Long.rotateLeft(this.fadeOut, 7);
     }
 }

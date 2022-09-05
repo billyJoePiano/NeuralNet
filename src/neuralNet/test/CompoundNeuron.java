@@ -86,6 +86,11 @@ public class CompoundNeuron extends CachingNeuron {
     }
 
     @Override
+    public long getNeuralHash() {
+        return this.neurons.get(this.neurons.size() - 1).getNeuralHash();
+    }
+
+    @Override
     public void before() {
         super.before();
         for (Neuron neuron : this.neurons) {

@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -14,8 +15,13 @@ import static neuralNet.util.Util.*;
  * the rounding required to fit the outputs into discrete integers causes some loss of precision
  * when used to invert one another.
  */
-public enum Increase implements FunctionWithInputs {
+public enum Increase implements NeuralFunction {
     INSTANCE;
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
 
     public static final double NUMERATOR = 536870912; // 2 to the 29th power
     public static final double ADDEND = 40131.439945759589960864302279981; // sqrt(2^29 + 2^30) - 1

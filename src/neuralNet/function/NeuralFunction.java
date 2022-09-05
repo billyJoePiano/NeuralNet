@@ -5,7 +5,7 @@ import neuralNet.neuron.*;
 import java.io.*;
 import java.util.*;
 
-public interface FunctionWithInputs extends Serializable {
+public interface NeuralFunction extends Serializable {
 
     public int getMinInputs();
     public int getMaxInputs();
@@ -19,6 +19,19 @@ public interface FunctionWithInputs extends Serializable {
 
     public short calcOutput(List<SignalProvider> inputs);
 
+    default public long getNeuralHash() {
+        return this.hashHeader();
+    }
+    public long hashHeader();
+
     public interface Tweakable<M extends Tweakable<M>>
-            extends FunctionWithInputs, neuralNet.evolve.Tweakable<M> { }
+            extends NeuralFunction, neuralNet.evolve.Tweakable<M> {
+
+        public long hashTweakMask();
+
+        @Override
+        default public long getNeuralHash() {
+            return this.hashHeader() ^ this.hashTweakMask();
+        }
+    }
 }

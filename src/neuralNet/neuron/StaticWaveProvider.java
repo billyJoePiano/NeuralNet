@@ -3,6 +3,7 @@ package neuralNet.neuron;
 import neuralNet.function.*;
 import neuralNet.network.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
@@ -193,5 +194,11 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
 
     public String toString() {
         return "Static" + this.waveFunction.getClass().getSimpleName();
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long getNeuralHash() {
+        return HASH_HEADER ^ Double.doubleToLongBits(this.period) ^ Double.doubleToLongBits(this.phase);
     }
 }

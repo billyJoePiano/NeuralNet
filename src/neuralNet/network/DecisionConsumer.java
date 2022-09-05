@@ -56,10 +56,12 @@ public interface DecisionConsumer<S extends Sensable<S>,
             }
         }
 
+        /*
         if (i == end && end != 0) {
             System.err.println("WARNING: Reached " + i + " iterations of NoOp rounds with differing decision weights \t "
                     + this.getClass());
         }
+         */
 
         Collections.sort(decisions);
 

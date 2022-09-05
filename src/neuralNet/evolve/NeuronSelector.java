@@ -45,7 +45,7 @@ public class NeuronSelector<N extends NeuralNet<?, N, ?>> {
             NegateBalanced.makeNeuron(),
             Negate.makeNeuron(),
             NotEquals.makeNeuron(),
-            RandomValue.makeNeuron(),
+            new RandomValueProvider(),
             SawWave.makeNeuron(32, 0),
             new ShortTermMemoryNeuron((short)0, 8, 8, 16, 8),
             SineWave.makeNeuron(32, 0),
@@ -89,6 +89,10 @@ public class NeuronSelector<N extends NeuralNet<?, N, ?>> {
 
     public static SignalProvider makeRandom() {
         SignalProvider neuron = getRandomTemplate();
+        if (neuron instanceof VariableWeightedAverage) {
+            System.out.println(neuron);
+        }
+
         if (!(neuron instanceof SignalProvider.Tweakable tweakable)) return neuron.clone();
 
         ThreadLocalRandom rand = ThreadLocalRandom.current();
@@ -139,7 +143,7 @@ public class NeuronSelector<N extends NeuralNet<?, N, ?>> {
     }
 
     public static SignalProvider getRandomTemplate() {
-        return TEMPLATES.get(ThreadLocalRandom.current().nextInt(0, TEMPLATES.size()));
+        return TEMPLATES.get(ThreadLocalRandom.current().nextInt(TEMPLATES.size()));
     }
 
     public static SignalProvider getRandomTemplate(int numInputs) {
@@ -153,7 +157,7 @@ public class NeuronSelector<N extends NeuralNet<?, N, ?>> {
                 list = MORE_THAN_TWO_INPUTS;
         }
 
-        return list.get(ThreadLocalRandom.current().nextInt(0, list.size())).clone();
+        return list.get(ThreadLocalRandom.current().nextInt(list.size())).clone();
     }
 
     /**

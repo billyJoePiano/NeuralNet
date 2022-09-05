@@ -14,19 +14,21 @@ public interface DecisionProvider<S extends Sensable<S>,
     public void setSensedObject(S sensedObject);
 
     public List<? extends SensorNode<S, P>> getSensors();
-    public Set<SignalProvider> getNeurons();
     public List<? extends DecisionNode<P, C>> getDecisionNodes();
+
+    public Set<SignalProvider> getProviders();
+    public Set<SignalConsumer> getConsumers();
 
     public P clone(); // typically a DEEP clone of the neural network
 
     public long getRound();
 
     default public void reset() {
-        this.getNeurons().forEach(SignalProvider::reset);
+        this.getProviders().forEach(SignalProvider::reset);
     }
 
     default public void before() {
-        this.getNeurons().forEach(SignalProvider::before);
+        this.getProviders().forEach(SignalProvider::before);
     }
 
     default public void sense() {
@@ -38,7 +40,7 @@ public interface DecisionProvider<S extends Sensable<S>,
     }
 
     default public void after() {
-        this.getNeurons().forEach(SignalProvider::after);
+        this.getProviders().forEach(SignalProvider::after);
     }
 
     default public void runRound() {
@@ -47,4 +49,6 @@ public interface DecisionProvider<S extends Sensable<S>,
         this.weighDecisions();
         this.after();
     }
+
+    public long getNeuralHash();
 }

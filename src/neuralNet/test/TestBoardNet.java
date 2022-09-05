@@ -2,9 +2,9 @@ package neuralNet.test;
 
 import game2048.*;
 import game2048.BoardInterface.*;
-import net.openhft.affinity.*;
 import neuralNet.function.*;
 import neuralNet.neuron.*;
+import neuralNet.util.*;
 
 import java.util.*;
 
@@ -74,10 +74,10 @@ public class TestBoardNet extends Thread {
     public static BoardNet makeRandomNet() {
         BoardNet rand = new BoardNet();
         List<BoardNet.Decision> decisions = rand.getDecisionNodes();
-        decisions.get(0).setInputs(List.of(RandomValue.makeNeuron()));
-        decisions.get(1).setInputs(List.of(RandomValue.makeNeuron()));
-        decisions.get(2).setInputs(List.of(RandomValue.makeNeuron()));
-        decisions.get(3).setInputs(List.of(RandomValue.makeNeuron()));
+        decisions.get(0).setInputs(List.of(new RandomValueProvider()));
+        decisions.get(1).setInputs(List.of(new RandomValueProvider()));
+        decisions.get(2).setInputs(List.of(new RandomValueProvider()));
+        decisions.get(3).setInputs(List.of(new RandomValueProvider()));
 
         return rand.traceNeuronsSet();
         //return rand;
@@ -194,7 +194,7 @@ public class TestBoardNet extends Thread {
     }
 
     public void run() {
-        try (AffinityLock af = obtainUniqueLock()) {
+        try (UniqueAffinityLock af = UniqueAffinityLock.obtain()) {
             System.out.println(this.getName() + "\tCPU Id:" + af.cpuId());
             runTrials();
         }

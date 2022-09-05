@@ -5,19 +5,19 @@ import neuralNet.function.*;
 import java.util.*;
 
 public class CachingNeuronUsingFunction extends CachingNeuron {
-    public final FunctionWithInputs outputFunction;
+    public final NeuralFunction outputFunction;
 
     public CachingNeuronUsingFunction(CachingNeuronUsingFunction cloneFrom) {
         super(cloneFrom);
         this.outputFunction = cloneFrom.outputFunction;
     }
 
-    protected CachingNeuronUsingFunction(CachingNeuronUsingFunction cloneFrom, FunctionWithInputs outputFunction) {
+    protected CachingNeuronUsingFunction(CachingNeuronUsingFunction cloneFrom, NeuralFunction outputFunction) {
         super(cloneFrom);
         this.outputFunction = outputFunction;
     }
 
-    public CachingNeuronUsingFunction(FunctionWithInputs outputFunction)
+    public CachingNeuronUsingFunction(NeuralFunction outputFunction)
             throws NullPointerException {
 
         super();
@@ -25,7 +25,7 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
         this.outputFunction = outputFunction;
     }
 
-    public CachingNeuronUsingFunction(FunctionWithInputs outputFunction, List<SignalProvider> inputs)
+    public CachingNeuronUsingFunction(NeuralFunction outputFunction, List<SignalProvider> inputs)
             throws NullPointerException {
 
         super();
@@ -36,7 +36,7 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
         this.setInputs(inputs);
     }
 
-    public CachingNeuronUsingFunction(FunctionWithInputs outputFunction, SignalProvider ... inputs) {
+    public CachingNeuronUsingFunction(NeuralFunction outputFunction, SignalProvider ... inputs) {
         this(outputFunction, Arrays.asList(inputs));
     }
 
@@ -56,8 +56,30 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
     }
 
     @Override
+    public boolean pairedInputs() {
+        return this.outputFunction.pairedInputs();
+    }
+
+    @Override
     protected short calcOutput(List<SignalProvider> inputs) {
         return this.outputFunction.calcOutput(inputs);
+    }
+
+    @Override
+    public long getNeuralHash() {
+        long hash = this.outputFunction.getNeuralHash() ^ Long.rotateLeft((long)this.inputs.size(), 27);
+        if (this.outputFunction.inputOrderMatters()) {
+            int i = 0;
+            for (SignalProvider provider: this.inputs) {
+                hash ^= Long.rotateRight(provider.getNeuralHash(), i += 17);
+            }
+
+        } else {
+            for (SignalProvider provider : this.inputs) {
+                hash ^= Long.rotateRight(provider.getNeuralHash(), 17);
+            }
+        }
+        return hash;
     }
 
     @Override

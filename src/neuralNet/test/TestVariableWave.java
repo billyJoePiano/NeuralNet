@@ -15,7 +15,7 @@ public class TestVariableWave {
 
     public static final int ROUNDS = ((int)Math.ceil(Math.abs(PERIOD_MAX)) + (int)Math.ceil(Math.abs(PERIOD_MIN))) * 256;
 
-    public static final SignalProvider periodRandom = RandomValue.makeNeuron();
+    public static final SignalProvider periodRandom = new RandomValueProvider();
     public static final Neuron periodMemory = new ShortTermMemoryNeuron(periodRandom, 16);
     public static final Neuron periodAverage = Average.makeNeuron(periodMemory, periodRandom);
     public static final Neuron period = Widen.makeNeuron(periodAverage);

@@ -132,8 +132,7 @@ public class TestUtil {
 
     private static final List<Class<?>> RECURSE_FOR_PRIVATE_PARENT_FIELDS = List.of(
             SignalConsumer.class,
-            FunctionWithInputs.class,
-            FunctionNoInputs.class,
+            NeuralFunction.class,
             StaticWaveProvider.class //VariableWaveProvider is already covered by SignalConsumer
     );
 

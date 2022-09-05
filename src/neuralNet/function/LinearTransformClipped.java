@@ -2,14 +2,20 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
 import static neuralNet.util.Util.*;
 
-public class LinearTransformClipped implements FunctionWithInputs.Tweakable<LinearTransformClipped> {
+public class LinearTransformClipped implements NeuralFunction.Tweakable<LinearTransformClipped> {
     public static final List<Param> POS_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN_NEG, Param.DEFAULT);
     public static final List<Param> NEG_PARAMS = List.of(Param.DEFAULT, Param.BOOLEAN, Param.DEFAULT);
+
+    @Override
+    public long hashTweakMask() {
+        return Double.doubleToLongBits(coefficient) ^ Double.doubleToLongBits(offset);
+    }
 
     public static CachingNeuronUsingTweakableFunction makeNeuron(double coefficient, double offset) {
         return new CachingNeuronUsingTweakableFunction(new LinearTransformClipped(coefficient, offset));
@@ -60,5 +66,11 @@ public class LinearTransformClipped implements FunctionWithInputs.Tweakable<Line
         else if (offsetDiff < Short.MIN_VALUE) offsetDiff = Short.MIN_VALUE;
 
         return new short[] { magnitudeParams[0], magnitudeParams[1], (short)offsetDiff };
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long hashHeader() {
+        return HASH_HEADER;
     }
 }

@@ -101,4 +101,11 @@ public abstract class CachingProvider implements SignalProvider {
         this.consumers.clear();
         this.consumers.addAll(newConsumers);
     }
+
+    /*
+    @Override
+    public long getNeuralHash() {
+        return 0;
+    }
+     */
 }

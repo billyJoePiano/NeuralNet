@@ -219,6 +219,11 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         }
 
         @Override
+        public long getNeuralHash() {
+            return this.decisionNode.getNeuralHash();
+        }
+
+        @Override
         public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {
             ComplexNeuron.this.replaceConsumers(neuronMap);
         }
@@ -369,8 +374,28 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
             }
 
             @Override
+            public int getSensorId() {
+                return this.index;
+            }
+
+            @Override
             public short sense() {
                 return this.input.getOutput();
+            }
+
+            /**
+             * For the Internal Sensors and Decision nodes of complex neurons, we do not bitmask their neuralHashes
+             * with the normal headers/masks for Sensors/DecisionNodes.  Instead, the neural hash from the input/
+             * output providers is passed straight through.  Therefore, a neural net with a complex neuron wrapping
+             * a subsection of it should have an identical neural hash to the same network in which the complex
+             * neuron is "unwrapped" and its internal neurons become part of the outer net.
+             *
+             * @return Neural hash of the input SignalProvider of the outer net that is associated with
+             * this internal sensor node
+             */
+            @Override
+            public long getNeuralHash() {
+                return this.input.getNeuralHash();
             }
         }
 
@@ -384,6 +409,21 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
             @Override
             public int getDecisionId() {
                 return this.index;
+            }
+
+            /**
+             * For the Internal Sensors and Decision nodes of complex neurons, we do not bitmask their neuralHashes
+             * with the normal headers/masks for Sensors/DecisionNodes.  Instead, the neural hash from the input/
+             * output providers is passed straight through.  Therefore, a neural net with a complex neuron wrapping
+             * a subsection of it should have an identical neural hash to the same network in which the complex
+             * neuron is "unwrapped" and its internal neurons become part of the outer net.
+             *
+             * @return Neural hash of the SignalProvider of the inner net that provides the input signal to this
+             * decision node
+             */
+            @Override
+            public long getNeuralHash() {
+                return this.getInputs().get(0).getNeuralHash();
             }
         }
     }
@@ -531,5 +571,10 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
                 ((Neuron)neuron).traceConsumers(addToExistingSet);
             }
         }
+    }
+
+    @Override
+    public long getNeuralHash() {
+        return this.decisionNode0.getNeuralHash();
     }
 }

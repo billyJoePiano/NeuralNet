@@ -2,10 +2,16 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
-public enum Widen implements FunctionWithInputs {
+public enum Widen implements NeuralFunction {
     INSTANCE;
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
 
     public static final double MULTIPLIER = 181.01933598375616624661615669884; // 128 * sqrt(2) aka sqrt(2^15 or 32768)
 

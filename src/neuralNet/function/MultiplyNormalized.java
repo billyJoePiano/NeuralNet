@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -9,8 +10,13 @@ import static neuralNet.util.Util.*;
 /**
  * AKA Geometric Mean
  */
-public enum MultiplyNormalized implements FunctionWithInputs {
+public enum MultiplyNormalized implements NeuralFunction {
     INSTANCE;
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
 
     public static CachingNeuronUsingFunction makeNeuron() {
         return new CachingNeuronUsingFunction(INSTANCE);

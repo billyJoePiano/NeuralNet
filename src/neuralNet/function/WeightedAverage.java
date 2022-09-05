@@ -1,17 +1,17 @@
 package neuralNet.function;
 
-import neuralNet.evolve.*;
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
-import static neuralNet.util.Util.*;
 import static neuralNet.evolve.Tweakable.*;
+import static neuralNet.util.Util.*;
 
 /**
  *
  */
-public class WeightedAverage implements FunctionWithInputs, Tweakable<WeightedAverage> {
+public class WeightedAverage implements NeuralFunction.Tweakable<WeightedAverage> {
     public static CachingNeuronUsingFunction makeNeuron(List<SignalProvider> inputs, double ... weights) {
         if (inputs.size() != weights.length) throw new IllegalArgumentException("Inputs list and weights array must have the same length!");
         return new CachingNeuronUsingFunction(new WeightedAverage(weights), inputs);
@@ -57,12 +57,12 @@ public class WeightedAverage implements FunctionWithInputs, Tweakable<WeightedAv
 
     @Override
     public int getMinInputs() {
-        return 2;
+        return weights.length;
     }
 
     @Override
     public int getMaxInputs() {
-        return 256;
+        return weights.length;
     }
 
     @Override
@@ -123,5 +123,27 @@ public class WeightedAverage implements FunctionWithInputs, Tweakable<WeightedAv
     @Override
     public boolean paramsPerInput() {
         return true;
+    }
+
+    @Override
+    public boolean inputOrderMatters() {
+        return true;
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
+
+
+    @Override
+    public long hashTweakMask() {
+        long hash = 0;
+        for (double weight : this.weights) {
+            hash ^= Double.doubleToLongBits(weight);
+            hash = Long.rotateRight(hash, 17);
+        }
+        return hash;
     }
 }

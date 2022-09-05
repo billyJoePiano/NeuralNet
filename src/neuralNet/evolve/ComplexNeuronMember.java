@@ -41,7 +41,7 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
 
         this.clearInputs();
         for (int i = 0 ; i < minInputs; i++) {
-            this.addInput(RandomValue.makeNeuron());
+            this.addInput(new RandomValueProvider());
         }
 
         int randTrials = Math.max((int)Math.pow(3, this.getMinInputs()), 81); // 81 = 3^4

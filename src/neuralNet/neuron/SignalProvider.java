@@ -7,6 +7,7 @@ public interface SignalProvider extends Serializable {
     public short getOutput();
 
     public Set<SignalConsumer> getConsumers();
+    public long getNeuralHash();
 
     /**
      * When implementing, return true if the consumer was not already in the set of consumers, false if it was.

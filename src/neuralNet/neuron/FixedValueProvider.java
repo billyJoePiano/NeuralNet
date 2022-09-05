@@ -2,6 +2,7 @@ package neuralNet.neuron;
 
 import neuralNet.network.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
@@ -112,5 +113,11 @@ public class FixedValueProvider extends CachingProvider
     @Override
     public Long getLastTweakedGeneration() {
         return this.lastTweaked == -1 ? null : this.lastTweaked;
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long getNeuralHash() {
+        return HASH_HEADER | Long.rotateLeft(this.value & 0xffff, 29);
     }
 }

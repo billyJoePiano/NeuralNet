@@ -1,6 +1,5 @@
 package neuralNet.util;
 
-import net.openhft.affinity.*;
 import neuralNet.neuron.*;
 
 import java.util.*;
@@ -43,7 +42,7 @@ public abstract class Util {
     public static final double TWO_PI = Math.PI * 2;
 
     public static final double BILLION = 1_000_000_000;
-    public static final double MILLION = 1__000_000;
+    public static final double MILLION = 1_000_000;
 
     /**
      * A true modulo operation (NOT a remainder) where all results are >= 0
@@ -164,89 +163,6 @@ public abstract class Util {
         }
     }
 
-
-
-    private static Map<Integer, Thread> affinities = new TreeMap();
-    private static final int MAX_ATTEMPTS = 8;
-    private static final long WAIT_BETWEEN_ATTEMPTS = 512;
-    private static final int ITERATIONS_TO_TEST_UNEXPECTED_AFFINITY = 256;
-
-    public static AffinityLock obtainUniqueLock() throws RuntimeException {
-        Thread current = Thread.currentThread();
-
-        AffinityLock lock = null;
-        boolean keepLock = false;
-
-        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) try {
-            int cpuId;
-            int affCpu;
-            boolean testOtherId;
-            synchronized (affinities) {
-                int i = 0;
-                while (affinities.containsKey(i)) {
-                    i++;
-                }
-
-                lock = AffinityLock.acquireLock(i);
-
-                cpuId = lock.cpuId();
-                affCpu = Affinity.getCpu();
-
-                if (cpuId == i && affCpu == i) {
-                    affinities.put(cpuId, Thread.currentThread());
-                    keepLock = true;
-                    return lock;
-                }
-
-                testOtherId = cpuId == affCpu && cpuId >= 0 && !affinities.containsKey(cpuId);
-
-                if (testOtherId) {
-                    affinities.put(cpuId, Thread.currentThread());
-
-                } else {
-                    lock.release();
-                    lock = null;
-                }
-            }
-
-            if (testOtherId) {
-                for (int i = 0; i < ITERATIONS_TO_TEST_UNEXPECTED_AFFINITY; i++) {
-                    try {
-                        Thread.sleep(WAIT_BETWEEN_ATTEMPTS / ITERATIONS_TO_TEST_UNEXPECTED_AFFINITY);
-
-                    } catch (InterruptedException e) {
-                        System.err.println(e);
-                    }
-
-                    if (cpuId != lock.cpuId() || Affinity.getCpu() != affCpu) {
-                        lock.release();
-                        lock = null;
-                        break;
-                    }
-                }
-
-                if (lock != null) {
-                    keepLock = true;
-                    return lock;
-                }
-            }
-
-            try {
-                Thread.sleep(WAIT_BETWEEN_ATTEMPTS);
-
-            } catch (InterruptedException e) {
-                System.err.println(e);
-            }
-
-
-        } finally {
-            if (lock != null && !keepLock) {
-                lock.release();
-            }
-        }
-        throw new RuntimeException("Could not obtain unique affinity lock");
-    }
-
     public static void syncMaps(Map<SignalProvider, SignalProvider> providersMap,
                          Map<SignalConsumer, SignalConsumer> consumersMap) {
 
@@ -324,5 +240,90 @@ public abstract class Util {
             if (c2.contains(obj)) return true;
         }
         return false;
+    }
+
+    public static String leftFill(String string, char fill, int length) {
+        int len = string.length();
+        if (len >= length) return string;
+        return String.valueOf(fill).repeat(length - len) + string;
+    }
+
+    public static String rightFill(String string, char fill, int length) {
+        int len = string.length();
+        if (len >= length) return string;
+        return string + String.valueOf(fill).repeat(length - len);
+    }
+
+    public static String leftFill(String string, String fill, int length) {
+        int len = string.length();
+        if (len >= length) return string;
+        len = length - len;
+        int repeat = len / fill.length();
+        int mod = len % fill.length();
+
+        if (mod == 0) return fill.repeat(repeat) + string;
+        else return fill.repeat(repeat) + fill.substring(0, mod) + string;
+    }
+
+    public static String rightFill(String string, String fill, int length) {
+        int len = string.length();
+        if (len >= length) return string;
+        len = length - len;
+        int repeat = len / fill.length();
+        int mod = len % fill.length();
+
+        if (mod == 0) return string + fill.repeat(repeat);
+        else return string + fill.substring(0, mod) + fill.repeat(repeat);
+    }
+
+    public static Map mapOf(Object ... keysValues) {
+        if ((keysValues.length & 0b1) == 1) throw new IllegalArgumentException("must have even number of args");
+
+        Map map = new LinkedHashMap<>();
+        for (int i = 0; i < keysValues.length; i += 2) {
+            map.put(keysValues[i], keysValues[i + 1]);
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
+    public static <K, V> Map<K, V> mapOf(Class<K> keyType, Class<V> valueType, Object ... keysValues) {
+        if ((keysValues.length & 0b1) == 1) throw new IllegalArgumentException("must have even number of args");
+
+        Map<K, V> map = new LinkedHashMap<>();
+        for (int i = 0; i < keysValues.length; i += 2) {
+            Object key = keysValues[i];
+            Object value = keysValues[i + 1];
+            assert keyType.isInstance(key) && valueType.isInstance(value);
+            map.put((K)key, (V)value);
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
+    public static String toString(short[] arr) {
+        StringBuilder str = new StringBuilder();
+        str.append('[');
+        boolean first = true;
+        for (short val : arr) {
+            if (first) first = false;
+            else str.append(", ");
+            str.append(val);
+
+        }
+        str.append(']');
+        return str.toString();
+    }
+
+    public static String toString(int[] arr) {
+        StringBuilder str = new StringBuilder();
+        str.append('[');
+        boolean first = true;
+        for (int val : arr) {
+            if (first) first = false;
+            else str.append(", ");
+            str.append(val);
+
+        }
+        str.append(']');
+        return str.toString();
     }
 }

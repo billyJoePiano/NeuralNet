@@ -2,6 +2,7 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.util.Util.*;
@@ -9,7 +10,7 @@ import static neuralNet.util.Util.*;
 /**
  * AKA AdditionNormalized
  */
-public class VariableWeightedAverage implements FunctionWithInputs.Tweakable<VariableWeightedAverage> {
+public class VariableWeightedAverage implements NeuralFunction.Tweakable<VariableWeightedAverage> {
     public static CachingNeuronUsingTweakableFunction makeNeuron(double minWeight, double maxWeight, SignalProvider ... inputs) {
         return new CachingNeuronUsingTweakableFunction(new VariableWeightedAverage(minWeight, maxWeight), inputs);
     }
@@ -118,5 +119,16 @@ public class VariableWeightedAverage implements FunctionWithInputs.Tweakable<Var
     @Override
     public boolean inputOrderMatters() {
         return true;
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
+
+    @Override
+    public long hashTweakMask() {
+        return Double.doubleToLongBits(this.logMin) ^ Double.doubleToLongBits(this.logMax);
     }
 }

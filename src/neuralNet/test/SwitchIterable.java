@@ -27,7 +27,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
 
     public SwitchIterable(Neuron switchNeuron, short[] inputVals) {
         List<SignalProvider> inputs = new ArrayList(inputVals.length + 1);
-        inputs.add(0, new CachingProviderUsingFunction(this::controlInput));
+        inputs.add(0, new ControlInputProvider());
 
         for (short val : inputVals) {
             inputs.add(new FixedValueProvider(val));
@@ -38,7 +38,7 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     }
 
     public SwitchIterable(Neuron switchNeuron, List<SignalProvider> inputs) {
-        inputs.add(0, new CachingProviderUsingFunction(this::controlInput));
+        inputs.add(0, new ControlInputProvider());
         this.neuron = switchNeuron;
         switchNeuron.setInputs(inputs);;
     }
@@ -47,8 +47,21 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
         return this.i;
     }
 
-    private short controlInput() {
-        return this.i;
+    private class ControlInputProvider extends CachingProvider {
+        @Override
+        protected short calcOutput() {
+            return SwitchIterable.this.getControlInput();
+        }
+
+        @Override
+        public long getNeuralHash() {
+            return 0;
+        }
+
+        @Override
+        public CachingProvider clone() {
+            throw new UnsupportedOperationException();
+        }
     }
 
 
@@ -131,6 +144,11 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     @Override
     public Set<SignalConsumer> getConsumers() {
         return null;
+    }
+
+    @Override
+    public long getNeuralHash() {
+        return 0;
     }
 
     @Override

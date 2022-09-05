@@ -2,11 +2,12 @@ package neuralNet.function;
 
 import neuralNet.neuron.*;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
 
-public class Floor implements FunctionWithInputs.Tweakable<Floor> {
+public class Floor implements NeuralFunction.Tweakable<Floor> {
     public static CachingNeuronUsingTweakableFunction makeNeuron(short floor) {
         return new CachingNeuronUsingTweakableFunction(new Floor(floor));
     }
@@ -50,5 +51,16 @@ public class Floor implements FunctionWithInputs.Tweakable<Floor> {
     @Override
     public short[] getTweakingParams(Floor toAchieve) {
         return toAchieve(this.floor, toAchieve.floor);
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+    @Override
+    public long hashHeader() {
+        return HASH_HEADER;
+    }
+
+    @Override
+    public long hashTweakMask() {
+        return Long.rotateLeft(floor & 0xffff, 17);
     }
 }

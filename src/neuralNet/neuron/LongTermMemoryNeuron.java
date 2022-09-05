@@ -1,8 +1,11 @@
 package neuralNet.neuron;
 
 import neuralNet.network.*;
+import neuralNet.test.*;
+import neuralNet.util.*;
 
 import java.io.*;
+import java.lang.invoke.*;
 import java.util.*;
 
 import static neuralNet.evolve.Tweakable.*;
@@ -14,10 +17,8 @@ import static neuralNet.util.Util.*;
  * average
  *
  */
-public class LongTermMemoryNeuron extends CachingNeuron
-        implements SignalProvider.Tweakable<LongTermMemoryNeuron> {
-
-    public static final double NaN = Double.NaN;
+public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
+    public static final long serialVersionUID = -5198894392784820039L;
 
     public final long lastTweaked;
 
@@ -31,7 +32,7 @@ public class LongTermMemoryNeuron extends CachingNeuron
      * begins fading in.  It will not be included in any weighted calculations until then
      */
     public final int delay;
-    public final double delayDbl;
+    private transient double delayDbl;
 
     /**
      * Number of rounds over which a memory starts to fade in to long-term memory.
@@ -39,35 +40,28 @@ public class LongTermMemoryNeuron extends CachingNeuron
      */
     public final int fadeIn;
 
-    public final double fadeInPlusOne;
-    // The weight of all long-term established memories relative to the first (lowest-weighted) fade-in memory which is weighted 1
-    // The last fade-in memory (the round before it is added to accumulated store) will have a weight of fadeIn
-
-
-    public final double fadeInPlusAddToStoreTotalWeight;
-
-
-    //TODO -- create the correctly sized memory arrays (recent and accumulated) after deserialization
     /**
-     * Memories that are still delayed or are fading-in
+     * the relative weight of ALL fadeIn values (after their weighted avg is calculated)
+     * as compared to ONE full-strength memory
      */
+    private transient double fadeInWeight;
+    private transient double fadeInPlusOne;
+
+    private transient AccumulatedAverage accumulated = new AccumulatedAverage();
     private transient double[] recent;
     private transient int index = 0;
     private transient int size = 0;
-
     private transient short nextOutput;
-
-    private transient double[] accumulated = new double[] {
-            NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN
-        }; //NaN is marker for not initialized... like a primitive version of 'null', to avoid boxing/unboxing overhead
-
     private transient List<Param> tweakingParams;
 
     protected Object readResolve() throws ObjectStreamException {
+        this.delayDbl = this.delay;
+        this.fadeInWeight = (double)fadeIn / 2.0;
+        this.fadeInPlusOne = this.fadeIn + 1;
+        this.accumulated = new AccumulatedAverage();
+
         if (this.delay == 0 && this.fadeIn == 0) this.recent = null;
         else this.recent = new double[this.delay + this.fadeIn];
-
-        this.accumulated = new double[] { NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN };
 
         return super.readResolve();
     }
@@ -80,7 +74,7 @@ public class LongTermMemoryNeuron extends CachingNeuron
         this.delayDbl = cloneFrom.delayDbl;
         this.fadeIn = cloneFrom.fadeIn;
         this.fadeInPlusOne = cloneFrom.fadeInPlusOne;
-        this.fadeInPlusAddToStoreTotalWeight = cloneFrom.fadeInPlusAddToStoreTotalWeight;
+        this.fadeInWeight = cloneFrom.fadeInWeight;
         this.tweakingParams = cloneFrom.tweakingParams;
 
         if (delay == 0 && fadeIn == 0) this.recent = null;
@@ -103,8 +97,11 @@ public class LongTermMemoryNeuron extends CachingNeuron
         this.delayDbl = delay;
         this.fadeIn = fadeIn;
         this.fadeInPlusOne = fadeIn + 1;
-        this.fadeInPlusAddToStoreTotalWeight = this.fadeInPlusOne * (this.fadeInPlusOne + 1) / 2;
+        this.fadeInWeight = (double)fadeIn / 2.0;
+        // fadeInWeight is the relative weight of ALL fadeIn values (after their weighted avg is calculated)
+        // in comparison to ONE full-strength memory
         // NOTE: x * (x + 1) / 2 is the formula for the sum of all integers between 1 and x (inclusive)
+        // To arrive at the fadeInWeight, divide this by (x + 1), which algebraically simplifies to x / 2
 
         if (delay == 0 && fadeIn == 0) this.recent = null;
         else this.recent = new double[delay + fadeIn];
@@ -131,17 +128,16 @@ public class LongTermMemoryNeuron extends CachingNeuron
         this.delayDbl = delay;
         this.fadeIn = fadeIn;
         this.fadeInPlusOne = fadeIn + 1;
-        this.fadeInPlusAddToStoreTotalWeight = this.fadeInPlusOne * (this.fadeInPlusOne + 1) / 2;
-        // NOTE: x * (x + 1) / 2 is the formula for the sum of all integers between 1 and x (inclusive)
+        this.fadeInWeight = (double)fadeIn / 2.0;
 
         if (delay == 0 && fadeIn == 0) this.recent = null;
         else this.recent = new double[delay + fadeIn];
     }
 
-    public LongTermMemoryNeuron(List<SignalProvider> input, short defaultVal, int delay, int fadeIn)
+    public LongTermMemoryNeuron(List<SignalProvider> inputs, short defaultVal, int delay, int fadeIn)
             throws IllegalArgumentException {
 
-        super(input);
+        super(inputs);
 
         if (delay < 0) throw new IllegalArgumentException("LongTermMemory delay must be 0 or greater");
         if (fadeIn < 0) throw new IllegalArgumentException("LongTermMemory fadeIn must be 0 or greater");
@@ -153,8 +149,7 @@ public class LongTermMemoryNeuron extends CachingNeuron
         this.delayDbl = delay;
         this.fadeIn = fadeIn;
         this.fadeInPlusOne = fadeIn + 1;
-        this.fadeInPlusAddToStoreTotalWeight = this.fadeInPlusOne * (this.fadeInPlusOne + 1) / 2;
-        // NOTE: x * (x + 1) / 2 is the formula for the sum of all integers between 1 and x (inclusive)
+        this.fadeInWeight = (double)fadeIn / 2.0;
 
         if (delay == 0 && fadeIn == 0) this.recent = null;
         else this.recent = new double[delay + fadeIn];
@@ -186,26 +181,34 @@ public class LongTermMemoryNeuron extends CachingNeuron
 
         if (this.recent == null) {
             // no delay and no fade in... skip right to adding to the accumulated store
-            double addToStore = inputs.get(0).getOutput();
-            this.nextOutput = this.processAccumulated(addToStore, addToStore);
+            this.nextOutput = roundClip(this.accumulated.addAndGetAverage(inputs.get(0).getOutput()));
 
         } else if (this.size == this.recent.length) {
-            double addToStore = this.recent[this.index]; // move the oldest value into the accumulated array...
+            double avg = this.accumulated.addAndGetAverage(this.recent[this.index]);
+            // move the oldest value into the accumulated array...
+
             this.recent[this.index] = inputs.get(0).getOutput(); // ...replace with the newest value
 
             if (this.fadeIn == 0) {
                 if (++this.index == this.recent.length) this.index = 0;
-                this.nextOutput = this.processAccumulated(addToStore, addToStore);
+                this.nextOutput = roundClip(avg);
 
             } else {
                 //the main execution path once long-term memory is established (except when this.recent == null, aka no delay or fadeIn)
-                this.nextOutput = this.processAccumulated(addToStore, (processRecent() + addToStore * this.fadeInPlusOne) / this.fadeInPlusAddToStoreTotalWeight);
+                long size = this.accumulated.size();
+                this.nextOutput = roundClip((processRecent() + avg * size) / (this.fadeInWeight + size));
             }
 
         } else {
             // nothing to add to accumulated yet
             this.size++;
-            this.recent[this.index] = inputs.get(0).getOutput();
+            try {
+                this.recent[this.index] = inputs.get(0).getOutput();
+
+            } catch (ArrayIndexOutOfBoundsException e) {
+                TestUtil.compareObjects(this, this);
+                throw e;
+            }
 
             if (this.index < this.delay || this.fadeIn == 0) {
                 // nothing to calculate through fade in.  Increment index and return defaultVal
@@ -230,7 +233,6 @@ public class LongTermMemoryNeuron extends CachingNeuron
         double sum = 0;
 
         int i;
-        int fadeIn = 0;
 
         if (this.delay == 0) {
             i = this.index;
@@ -239,22 +241,15 @@ public class LongTermMemoryNeuron extends CachingNeuron
             i = this.index - this.delay;
         }
 
-        double weightSum = (i * (i + 1)) >> 1; // bit shift used as alternative to divide by 2
-        // even * odd == even ... therefore, there will never be any fractional from loss dividing by 2...
+        double weightSum = ((i + 1) * (i + 2)) / 2;
+        // i is zero-indexed, therefore we must use i + 1 as "i" and i + 2 as "i + 1"
 
         while (i != -1) {
-            fadeIn++;
-            //double weight = fadeIn / this.fadeInPlusOneDbl;
-
-            sum += this.recent[i] * i; // * weight
-            //weightSum += fadeIn; // += weight;
-
+            sum += this.recent[i] * i;
             i--;
         }
 
-        if (++this.index == this.recent.length) {
-            this.index = 0;
-        }
+        if (++this.index == this.recent.length) this.index = 0;
 
         return roundClip(sum / weightSum);
     }
@@ -291,121 +286,23 @@ public class LongTermMemoryNeuron extends CachingNeuron
             else i = this.recent.length - 1;
         }
 
-        if (++this.index == this.recent.length) {
-            this.index = 0;
-        }
+        if (++this.index == this.recent.length) this.index = 0;
 
-        return sum;
-    }
+        return sum / (double)(this.fadeIn + 1);
+        // rather than divide by fadeInWeight only to re-multiply by it again, we just return this...
+        // algebraically simplified from:
+        // ( sum  /  ((fadeIn + 1) * fadeIn / 2)  )   *     fadeIn / 2
+        //           ^^ formula for weightSum ^^                  ^^^ fadeInWeight
 
-    /**
-     * Each successive index in the accumulated array represents a power of two, in terms of
-     * the number of rounds of memories it represents as an accumulated average.  This makes it
-     * easy to combine accumulated averages over time, as the number of memories grows.  Doing this
-     * avoids creating an excessively long array with time-consuming calculations each time the weighted
-     * average needs to be calculated.
-     *
-     * EXAMPLE: 1 new memory to add to a small established array...
-     *
-     * 1 -> [ 1 , 2 , - , 8 , 16 , - ]
-     *      ...becomes...
-     * ---> [1+1, 2 , - , 8 , 16 , - ] <--- combining through powers of two
-     *      [ 2 + 2 , - , 8 , 16 , - ] <--- keep combining...
-     *      [ - , - , 4 , 8 , 16 , - ] <--- ...until an empty slot is reached
-     *
-     * (values are the number of memories represented at each index ... dash indicates NaN, aka nothing represented)
-     *
-     * In the resulting example, only 3 values are needed to calculate the final average representing 28 memories!
-     *
-     * @param addToStore
-     * @param fadeInAvg
-     * @return
-     */
-    private short processAccumulated(double addToStore, double fadeInAvg) { //fadeInAvg ALREADY INCLUDES addToStore
-        double weightSum = 0;
-        // sum of weights including the fadeInAvg
-
-        double avg = 0;
-        //accumulator for the return value, which includes the fadeIn memories
-
-        double currentWeight = 1;
-        // always a power of 2.  The weight of the current index in the accumulated array: 2^i
-
-        boolean needToAddFadeInAvg = true;
-        // delay adding the fadeInAvg to avg until the weightSum is greater than or equal to this.fadeInTotalWeightPlusOne
-        // ...helps prevent loss of precision
-        // NOTE that the fadeInAvg INCLUDES addToStore, so even when this.fadeIn == 0 it is still necessary to include it
-
-        for (int i = 0; i < this.accumulated.length; i++) {
-            if (/* is NaN */ this.accumulated[i] != this.accumulated[i]) {
-                                    // ^^^ Double.isNaN , inlining
-                this.accumulated[i] = addToStore;
-                addToStore = NaN;
-                currentWeight *= 2;
-                continue;
-            }
-
-            // otherwise, we incorporate this memory into the avg calculation
-            // and combine with addToStore if necessary
-
-            double ratio = weightSum / currentWeight;
-            avg = (this.accumulated[i] + avg * ratio) / (ratio + 1);
-            weightSum += currentWeight;
-
-            if (needToAddFadeInAvg && weightSum >= this.fadeInPlusAddToStoreTotalWeight) {
-                ratio = this.fadeInPlusAddToStoreTotalWeight / weightSum;
-                avg = (avg + fadeInAvg * ratio) / (ratio + 1);
-                weightSum += this.fadeInPlusAddToStoreTotalWeight;
-
-                needToAddFadeInAvg = false;
-            }
-
-            if (/* is NOT NaN */ addToStore == addToStore) {
-                //combine two accumulated averages, both representing the same power of 2 number of memories
-                addToStore = (addToStore + this.accumulated[i]) / 2; // assign to addToStore, so it continues combining, or gets assigned to the next index if it is empty
-                this.accumulated[i] = NaN; // empty the current index
-
-                if (i + 1 == this.accumulated.length) {
-                    //need more space in the accumulated array... create a new array and copy over the old one
-                    double[] old = this.accumulated;
-                    this.accumulated = new double[old.length + 10];
-
-                    int j = 0;
-                    for (; j < old.length; j++) {
-                        this.accumulated[j] = old[j];
-                    }
-
-                    //fill-in NaN for the remaining new slots
-                    for (; j < this.accumulated.length; j++) {
-                        this.accumulated[j] = NaN;
-                    }
-                }
-            }
-
-            currentWeight *= 2;
-        }
-
-        if (needToAddFadeInAvg) {
-            if (weightSum == 0) {
-                // It will only reach this code block on the first time this method is called,
-                // because there was nothing but NaN in the accumulated array, so nothing was added to weightSum
-                avg = fadeInAvg;
-
-            } else {
-                double ratio = this.fadeInPlusAddToStoreTotalWeight / weightSum;
-                avg = (avg + fadeInAvg * ratio) / (ratio + 1);
-            }
-        }
-
-        return roundClip(avg);
+        //  ...simplifies to just sum / (fadeIn + 1)
     }
 
     @Override
     public void reset() {
         this.nextOutput = this.defaultVal;
         this.size = 0;
-        Arrays.fill(this.accumulated, NaN);
-
+        this.index = 0;
+        this.accumulated.clear();
         super.reset();
     }
 
@@ -475,5 +372,13 @@ public class LongTermMemoryNeuron extends CachingNeuron
 
     public String toString() {
         return "LongTermMemory(" + this.defaultVal + ", " + this.delay + ", " + this.fadeIn + ")";
+    }
+
+    public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+
+    protected long calcHash() {
+        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
+                ^ Long.rotateLeft(this.defaultVal & 0xffff, 51)
+                ^ Long.rotateLeft(this.delay, 37) ^ Long.rotateLeft(this.fadeIn, 23);
     }
 }

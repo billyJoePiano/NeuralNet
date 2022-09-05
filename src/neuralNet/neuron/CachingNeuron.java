@@ -244,4 +244,13 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
         }
         this.inputs.clear();
     }
+
+    /*public abstract long getProviderHash();
+    public long getNeuralHash() {
+
+        //long hash = this.getProviderHash();
+        return 0;
+    }
+
+ */
 }
