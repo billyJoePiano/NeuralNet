@@ -4,6 +4,7 @@ import neuralNet.network.*;
 import neuralNet.util.*;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import static neuralNet.util.Util.*;
 
@@ -120,6 +121,8 @@ public class BoardInterface extends Board implements
         public final double timePerMove;
         public final double weightedScore;
 
+        public final long generation = NeuralNet.getCurrentGeneration();
+
         private BoardNetFitness(BoardNet net, final int min, final int max, final double arthMean, final double geoMean, final double median,
                                 final double timePerMove) {
             this.net = net;
@@ -157,17 +160,41 @@ public class BoardInterface extends Board implements
             if (other == null) return -1;
             if (other == this) return 0;
 
-            if (this.weightedScore > other.weightedScore) return -1;
-            if (this.weightedScore < other.weightedScore) return 1;
+            if (this.weightedScore != other.weightedScore) return -Double.compare(this.weightedScore, other.weightedScore);
 
             // for now... prioritize score over time
-            if (this.composite > other.composite) return -1;
-            if (this.composite < other.composite) return 1;
+            if (this.composite != other.composite) return -Double.compare(this.composite, other.composite);
+            if (this.timePerMove != other.timePerMove) return Double.compare(this.timePerMove, other.timePerMove);
 
-            if (this.timePerMove < other.timePerMove) return -1;
-            if (this.timePerMove > other.timePerMove) return 1;
+            if (this.min != other.min) return -Double.compare(this.min, other.min);
+            if (this.geoMean != other.geoMean) return -Double.compare(this.geoMean, other.geoMean);
+            if (this.minMaxGeo != other.minMaxGeo) return -Double.compare(this.minMaxGeo, other.minMaxGeo);
+            if (this.median != other.median) return -Double.compare(this.median, other.median);
+            if (this.arthMean != other.arthMean) return -Double.compare(this.arthMean, other.arthMean);
+            if (this.generation != other.generation) return Long.compare(this.generation, other.generation);
+            if (this.max != other.max) return -Double.compare(this.max, other.max);
 
-            return 0;
+            int mine = this.hashCode();
+            int theirs = other.hashCode();
+            if (mine != theirs) return Integer.compare(this.hashCode(), other.hashCode());
+
+            if (this.net == other.net) throw new IllegalStateException();
+            mine = this.net.hashCode();
+            theirs = other.net.hashCode();
+            if (mine != theirs) return Integer.compare(this.hashCode(), other.hashCode());
+
+            ThreadLocalRandom rand = ThreadLocalRandom.current();
+            return rand.nextBoolean() ? -1 : 1;
+        }
+
+        @Override
+        public BoardNet getDecisionProvider() {
+            return this.net;
+        }
+
+        @Override
+        public long getGeneration() {
+            return this.generation;
         }
 
         public String toString() {

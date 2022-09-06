@@ -19,6 +19,7 @@ import static neuralNet.util.Util.*;
  * rather than in after(), because the neuron
  */
 public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.Tweakable<VariableWaveNeuron> {
+    public static final long serialVersionUID = -3247512747152016341L;
 
     public static final List<List<Param>> MUTATION_PARAMS_BOTH_POS = makeParams(true, true);
     public static final List<List<Param>> MUTATION_PARAMS_MIN_NEG = makeParams(false, true);
@@ -42,12 +43,19 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
 
     public final double periodMin;
     public final double periodMax;
-    public transient final double periodRange;
+    private transient double periodRange;
 
     private transient double nextPosition = 0;
     private transient double lastPeriod;
     private transient double currentPhaseShift;
 
+    @Override
+    protected Object readResolve() throws ObjectStreamException {
+        this.periodRange = this.periodMax - this.periodMin;
+        return super.readResolve();
+    }
+
+    /*
     private Object readResolve() throws ObjectStreamException {
         return new VariableWaveNeuron(this, null);
     }
@@ -60,6 +68,7 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
         this.periodMax = deserializedFrom.periodMax;
         this.periodRange = periodMax - periodMin;
     }
+     */
 
     public VariableWaveNeuron(SignalProvider period, WaveFunction waveFunction,
                               double periodMin, double periodMax)
@@ -296,11 +305,11 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
     public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
     @Override
     public long getNeuralHash() {
-        long hash = HASH_HEADER ^ Long.rotateRight(this.inputsMutable.get(0).getNeuralHash(), 17)
+        long hash = HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
                 ^ Long.rotateLeft(Double.doubleToLongBits(this.periodMin), 13)
                 ^ Long.rotateLeft(Double.doubleToLongBits(this.periodMax), 17);
 
-        if (this.inputsMutable.size() == 1) return hash;
-        return hash ^ Long.rotateRight(this.inputsMutable.get(1).getNeuralHash(), 34); //17 * 2
+        if (this.inputs.size() == 1) return hash;
+        return hash ^ Long.rotateRight(this.inputs.get(1).getNeuralHash(), 34); //17 * 2
     }
 }

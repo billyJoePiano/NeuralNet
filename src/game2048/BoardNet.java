@@ -6,6 +6,8 @@ import neuralNet.neuron.*;
 import java.util.*;
 
 public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface> {
+    private static final long serialVersionUID = 9054824145968924217L;
+
     private static final short[] NEURAL_OUTPUTS = new short[] {
             Short.MIN_VALUE,        //empty
             -28913,     //2
@@ -27,27 +29,46 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
             Short.MAX_VALUE     //131072
         };
 
-    private final Sensor[][] matrix = makeSensors();
-    private final List<Sensor> sensors = List.of(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
-                                                matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3],
-                                                matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3],
-                                                matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]);
+    private final Sensor[][] matrix;
+    private final List<Sensor> sensors;
 
 
     public final List<Decision> decisionNodes = List.of(new Up(), new Down(), new Left(), new Right(), this.getNoOp());
 
-    public BoardNet() { }
+    /*
+    protected Object readResolve() throws ObjectStreamException {
+        return new BoardNet(this, null);
+    }
+
+    private BoardNet(BoardNet deserializedFrom, Void v) {
+        super(deserializedFrom, null);
+        this.matrix = deserializedFrom.matrix;
+        this.sensors = deserializedFrom.sensors;
+    }
+     */
+
+    public BoardNet() {
+        super();
+        this.matrix = makeSensors();
+        this.sensors = makeSensorList();
+    }
 
 
     //TODO constructors for consumers substitutions map
     public BoardNet(BoardNet cloneFrom) {
         super(cloneFrom);
+        this.matrix = makeSensors();
+        this.sensors = makeSensorList();
         this.cloneNeurons(cloneFrom, null, null);
     }
 
     public BoardNet(BoardNet cloneFrom,
                     Map<SignalProvider, SignalProvider> providersMap,
                     Map<SignalConsumer, SignalConsumer> consumersMap) {
+
+        super(cloneFrom);
+        this.matrix = makeSensors();
+        this.sensors = makeSensorList();
         this.cloneNeurons(cloneFrom, providersMap, consumersMap);
     }
 
@@ -61,6 +82,13 @@ public class BoardNet extends NeuralNet<BoardInterface, BoardNet, BoardInterface
             }
         }
         return matrix;
+    }
+
+    private List<Sensor> makeSensorList() {
+        return List.of(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
+                matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3],
+                matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3],
+                matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]);
     }
 
     @Override

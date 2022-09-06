@@ -1,11 +1,11 @@
 package neuralNet.test;
 
+import neuralNet.evolve.*;
 import neuralNet.util.*;
 
 import java.util.*;
 
-import static neuralNet.test.TestAddNeurons.mutationCounts;
-import static neuralNet.util.Util.MILLION;
+import static neuralNet.util.Util.*;
 
 public class TestMutationCounts {
     public static void main(String[] args) {
@@ -14,7 +14,7 @@ public class TestMutationCounts {
             System.out.println("NETS_PER_GENERATION == " + nets);
             for (int i = 1; i < nets / 2 + 3; i++) {
                 long start = System.nanoTime();
-                int[] counts = mutationCounts(i, nets - 1);
+                int[] counts = MutationCounts.calc(i, nets - 1);
                 long end = System.nanoTime();
                 System.out.println(i + " " + Util.toString(counts) + "\t" + (end - start) / MILLION);
             }
@@ -23,7 +23,7 @@ public class TestMutationCounts {
             System.out.println("\n\nNETS_PER_GENERATION == " + nets);
             for (int i = 1; i < nets / 2 + 3; i++) {
                 long start = System.nanoTime();
-                int[] counts = mutationCounts(i, nets - 1);
+                int[] counts = MutationCounts.calc(i, nets - 1);
                 long end = System.nanoTime();
                 System.out.println(i + " " + Util.toString(counts) + "\t" + (end - start) / MILLION);
             }

@@ -11,6 +11,8 @@ import java.io.*;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
 public class TestAddNeurons extends Thread {
     public static final int GENERATIONS = 2048;
@@ -18,9 +20,18 @@ public class TestAddNeurons extends Thread {
     public static final int RETAIN_BEST = 8;
     public static final int THREADS = 6;
     public static final int MIN_RAND_LINEAGE_RETAINED = 4;
+    public static final int RETEST_FREQUENCY = 16; //max generations before a new fitness test is conducted on a retained/legacy net
 
     private static final BoardNet EDGE_NET = TestBoardNet.makeEdgeNet(),
-            RAND_NET = TestBoardNet.makeRandomNet();
+                                  RAND_NET = TestBoardNet.makeRandomNet();
+
+    public static final Predicate<BoardNetFitness> RAND_NET_FITNESS_FILTER = f -> isRandLineage(f.net);
+
+    private static final List<BoardNet> randNetsToKeep = new ArrayList<>(MIN_RAND_LINEAGE_RETAINED);
+    private static final NetTracker.KeepLambda<BoardNet> KEEP_EDGE_AND_RAND = (gen, interned, net) -> {
+            if (net == EDGE_NET || net == RAND_NET || randNetsToKeep.contains(net)) return true;
+            else return NetTracker.DEFAULT_KEEP_LAMBDA.keep(gen, interned, net);
+        };
 
     public static final long RAND_HASH = RAND_NET.getNeuralHash();
 
@@ -30,25 +41,30 @@ public class TestAddNeurons extends Thread {
     private static final List<TestAddNeurons> threads = new ArrayList<>(THREADS);
 
     private static Set<BoardNet> currentNets = Set.of(EDGE_NET, RAND_NET);
-    private static List<BoardNet> fittest;
+    private static Set<BoardNet> fittest;
     private static final Var<Iterator<BoardNet>> currentIterator = new Var<>();
     private static final Set<Thread> threadsIdle = new HashSet<>();
+    private static boolean exit = false;
     private static boolean finished = false;
-    private static List<BoardNetFitness> fitnesses;
+    private static TreeSet<BoardNetFitness> fitnesses;
     private static final Map<Long, BoardNet> hashes = new TreeMap<>(Map.of(EDGE_NET.getNeuralHash(), EDGE_NET, RAND_NET.getNeuralHash(), RAND_NET));
     private static final Map<Long, Set<BoardNet>> hashCollisions = new TreeMap<>();
-    private static final Map<BoardNet, Long> legacy = new LinkedHashMap<>();
+    private static final NetTracker<BoardNet, BoardNetFitness> netTracker = new NetTracker<>(KEEP_EDGE_AND_RAND);
+
     private static TeePrintStream System_all;
 
     private static final Thread SHUTDOWN_HOOK = new Thread(() -> {
         String filename = FILENAME + " (gen " + NeuralNet.getCurrentGeneration() + ").nnt";
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-            if (!finished) waitForThreadsToExit(reader);
-            if (!askToSave(filename, reader)) {
-                System_all.println("Not saving...\nBYE");
-                return;
+            if (!finished) {
+                waitForThreadsToExit(reader);
+                if (!askToSave(filename, reader)) {
+                    System_all.println("Not saving...\nBYE");
+                    return;
+                }
             }
+
         } catch (IOException e) {
             e.printStackTrace(System.err);
             System.err.println("\nProceeding with save due to error receiving user input\n");
@@ -69,21 +85,23 @@ public class TestAddNeurons extends Thread {
     public static class SavedNets implements Serializable {
         public static final long serialVersionUID = 5228078204316649402L;
 
-        public final List<BoardNet> fittest = TestAddNeurons.fittest;
+        public final Collection<BoardNet> fittest = TestAddNeurons.fittest;
         public final Map<Long, BoardNet> hashes = TestAddNeurons.hashes;
         public final Map<Long, Set<BoardNet>> hashCollisions = TestAddNeurons.hashCollisions;
-        public final Map<BoardNet, Long> legacy = TestAddNeurons.legacy;
+        public final Map<BoardNet, Long> legacy = null;// = TestAddNeurons.netTracker.toMap();
+        public final NetTracker<BoardNet, BoardNetFitness> netTracker = TestAddNeurons.netTracker;
 
         private SavedNets() { }
 
         public void restoreState() {
             long edgeHash = EDGE_NET.getNeuralHash();
             long randHash = RAND_NET.getNeuralHash();
-            BoardNet edge = hashes.get(edgeHash);
-            BoardNet rand = hashes.get(randHash);
 
             // re-calculate the hashes
-            for (Map.Entry<Long, BoardNet> entry : this.hashes.entrySet()) {
+            for (Iterator<Map.Entry<Long, BoardNet>> iterator = this.hashes.entrySet().iterator();
+                    iterator.hasNext();) {
+
+                Map.Entry<Long, BoardNet> entry = iterator.next();
                 BoardNet net = entry.getValue();
                 long hash = net.getNeuralHash();
                 long oldHash = entry.getKey();
@@ -92,31 +110,15 @@ public class TestAddNeurons extends Thread {
                             + oldHash + "\n" + net);
                 }
 
-                if (hash == edgeHash && net.generation == 0) edge = net;
-                else if (hash == randHash && net.generation == 0) rand = net;
+                if (net.generation == 0) iterator.remove();
                 else TestAddNeurons.hashes.put(hash, net);
             }
 
-            if (edge == null || rand == null) {
-                for (BoardNet net : this.fittest) {
-                    if (net.generation != 0 || net.getLineage().length != 0) continue;
-                    long hash = net.getNeuralHash();
-                    if (edge == null && hash == edgeHash) edge = net;
-                    else if (rand == null && hash == randHash) rand = net;
-                }
-            }
 
 
-            if (edge != null && edge.generation == 0) this.fittest.remove(edge);
-            else throw new IllegalStateException();
-
-
-            if (rand != null && rand.generation == 0) this.fittest.remove(rand);
-            else throw new IllegalStateException();
-
-            this.fittest.add(EDGE_NET);
-            this.fittest.add(RAND_NET);
-            currentNets = new HashSet<>(this.fittest);
+            currentNets = this.fittest.stream().filter(n -> n.generation != 0).collect(Collectors.toCollection(LinkedHashSet::new));
+            currentNets.add(EDGE_NET);
+            currentNets.add(RAND_NET);
 
             for (Map.Entry<Long, Set<BoardNet>> entry : hashCollisions.entrySet()) {
                 Set<BoardNet> displaced = TestAddNeurons.hashCollisions.put(entry.getKey(), entry.getValue());
@@ -147,8 +149,11 @@ public class TestAddNeurons extends Thread {
             Collections.sort(entryList, Comparator.comparing(Map.Entry::getValue));
 
             for (Map.Entry<BoardNet, Long> entry : entryList) {
-                TestAddNeurons.legacy.put(entry.getKey(), entry.getValue());
+                BoardNet net = entry.getKey();
+                if (net.generation == 0) continue;
+                TestAddNeurons.netTracker.setGenRating(entry.getKey(), entry.getValue());
             }
+
             System.out.println();
         }
     }
@@ -164,160 +169,89 @@ public class TestAddNeurons extends Thread {
         System.setErr(errTee);
 
         if (args.length > 0) {
-            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(args[0]))) {
-                SavedNets nets = (SavedNets) in.readObject();
-                nets.restoreState();
-                System.out.println("Successfully loaded saved file '" + args[0] + "'");
-
-            } catch (Exception e) {
-                e.printStackTrace(System.err);
-                try {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                    while (true) {
-                        System.err.println("Error loading save file " + args[0] + "\n continue anyways? Enter 'y' or 'n'");
-                        String output = reader.readLine().toLowerCase();
-                        if ("y".equals(output)) break;
-                        else if ("n".equals(output)) return;
-                        System.err.println("Invalid response");
-                    }
-
-                } catch (Exception e2) {
-                    throw new RuntimeException(e2);
-                }
-            }
+            if (!loadSaved(args[0])) return;
         }
 
         Runtime.getRuntime().addShutdownHook(SHUTDOWN_HOOK);
 
-        legacy.put(EDGE_NET, Long.MAX_VALUE);
-        legacy.put(RAND_NET, Long.MAX_VALUE);
+        netTracker.setGenRating(EDGE_NET, Long.MAX_VALUE);
+        netTracker.setGenRating(RAND_NET, Long.MAX_VALUE);
 
         for (int i = 0; i < THREADS; i++) {
             new TestAddNeurons().start();
         }
 
-        Set<BoardNet> fittest = currentNets;
+        fittest = currentNets;
         boolean incrementGeneration = fittest.size() < NETS_PER_GENERATION;
-
-        for (long i = NeuralNet.getCurrentGeneration(), end = i + GENERATIONS;
-             i <= end && !finished; i++) {
+        long i = NeuralNet.getCurrentGeneration(), end = i + GENERATIONS;
+        for (;i <= end && !exit; i++) {
 
             if (incrementGeneration) i = NeuralNet.nextGeneration(); //only increment to nextGeneration if i < end, so the Shutdown hook has correct generations
             else incrementGeneration = true; //for the first iteration only
 
-            fittest = iteration(fittest, i);
+            iteration(i);
         }
 
-        checkLegacy(fittest, currentNets, NeuralNet.getCurrentGeneration());
+        netTracker.cullOld();
+
         System.out.println("MAIN THREAD HAS FINISHED CRITICAL SHUTDOWN TASKS... cleaning up");
+        finished = i >= end & !exit;
 
         synchronized (currentIterator) {
             currentNets = fittest;
-            finished = true;
+            exit = true;
             currentIterator.notifyAll();
         }
 
         filterHashes();
     }
 
-    private static void iteration() {
-        Set<BoardNet> previousNets = currentNets;
-        currentNets = makeMutations(fittest);
+    private static boolean loadSaved(String filename) {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
+            SavedNets nets = (SavedNets) in.readObject();
+            nets.restoreState();
 
-        currentNets.addAll(legacy.keySet());
-
-        dispatchWorkerThreads();
-        doWaitingTasks(previousNets);
-
-        Collections.sort(fitnesses);
-
-        fittest = new ArrayList<>(RETAIN_BEST);
-        for (BoardNetFitness fitness : fitnesses) {
-            fittest.add(fitness.net);
-            if (fittest.size() >= RETAIN_BEST) break;
-        }
-    }
-
-    public static int[] mutationCounts(int fittestCount, int netsToMake) {
-        int[] makeMutations = new int[fittestCount];
-
-        if (netsToMake <= fittestCount) {
-            if (netsToMake > 0) {
-                Arrays.fill(makeMutations, 0, netsToMake, 1);
-
-            } else {
-                netsToMake = 0;
-            }
-
-        } else {
-
-            int evenlyDistribute = Math.min(netsToMake, Math.max(fittestCount, (int) Math.ceil((double) netsToMake * 2.0 / 3.0)));
-            int baseline = (int) Math.floor((double) evenlyDistribute / (double) fittestCount);
-
-            if (baseline * fittestCount != evenlyDistribute) {
-                if (netsToMake - baseline * fittestCount > fittestCount) {
-                    baseline++;
-                }
-                evenlyDistribute = baseline * fittestCount;
-            }
-
-            double[] mmFloat = new double[fittestCount];
-            int geoDistribute = netsToMake - evenlyDistribute;
-
-            double offset = baseline + 2.0 * (double)geoDistribute / (double) fittestCount;
-            double slope = offset / fittestCount;
-            offset += baseline;
-
-            int sum = 0;
-
-            for (int i = 0; i < fittestCount; i++) {
-                double flt = offset - slope * i;
-                assert flt >= 0;
-                int intg = (int)Math.round(flt);
-                mmFloat[i] = flt;
-                makeMutations[i] = intg;
-                sum += intg;
-            }
-
-            assert sum >= netsToMake;
-
-            if (sum > netsToMake) {
-                List<Map.Entry<Integer, Double>> diffs = new ArrayList<>(fittestCount);
-                //key = index, value = difference between floating and actual
-
-                for (int i = 0; i < fittestCount; i++) {
-                    diffs.add(new AbstractMap.SimpleEntry<>(i, mmFloat[i] - makeMutations[i]));
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                while (true) {
+                    System.err.println("Error loading save file " + filename + "\n continue anyways? Enter 'y' or 'n'");
+                    String output = reader.readLine().toLowerCase();
+                    if ("y".equals(output)) return true;
+                    else if ("n".equals(output)) return false;
+                    System.err.println("Invalid response");
                 }
 
-                while (sum > netsToMake) {
-                    diffs.sort((e1, e2) -> {
-                        double diff1 = e1.getValue(), diff2 =  e2.getValue();
-                        if (diff1 < diff2) return -1;
-                        if (diff2 < diff1) return 1;
-                        if (diff1 == diff2) return 0;
-                        throw new IllegalStateException(diff1 + "\n" + diff2);
-                    });
-
-                    for (Map.Entry<Integer, Double> entry : diffs) {
-                        int index = entry.getKey();
-                        if (makeMutations[index] == 1) continue;
-                        makeMutations[index]--;
-                        entry.setValue(mmFloat[index] - makeMutations[index]);
-                        if (--sum <= netsToMake) break;
-                    }
-                }
+            } catch (Exception e2) {
+                throw new RuntimeException(e2);
             }
         }
 
-        assert Arrays.stream(makeMutations).sum() == netsToMake;
-        return makeMutations;
+        System.out.println("Successfully loaded saved file '" + filename + "'");
+        return true;
     }
 
-    private static Set<BoardNet> makeMutations(List<BoardNet> fittest) {
-        Set<BoardNet> newGen = new LinkedHashSet<>(NETS_PER_GENERATION + legacy.size());
+    private static void iteration(long gen) {
+        boolean processLegacies = fitnesses != null; //skip on the first time around
+        currentNets = makeMutations();
+        fitnesses = new TreeSet<>();
+
+        dispatchWorkerThreads(gen);
+        if (processLegacies) processLegacies(gen);
+        doOtherWaitingTasks(gen);
+
+        if (exit) return;
+
+        fittest = netTracker.addFittest(fitnesses, RETAIN_BEST);
+        checkForRandNets();
+    }
+
+    private static Set<BoardNet> makeMutations() {
+        Set<BoardNet> newGen = new LinkedHashSet<>(NETS_PER_GENERATION + netTracker.size());
         newGen.addAll(fittest);
 
-        int[] counts = mutationCounts(fittest.size(), NETS_PER_GENERATION - fittest.size());
+        int[] counts = MutationCounts.calc(fittest.size(), NETS_PER_GENERATION - fittest.size());
 
         Iterator<BoardNet> iterator = fittest.iterator();
         for (int n = 0; n < fittest.size(); n++) {
@@ -338,88 +272,38 @@ public class TestAddNeurons extends Thread {
         System_all.println("\n-----------------------------------------------------\nGENERATION " + gen);
         System.out.println("\n");
 
-        fitnesses = new ArrayList<>(currentNets.size());
-
         synchronized (currentIterator) {
             currentIterator.value = currentNets.iterator();
             currentIterator.notifyAll();
         }
     }
 
-    private static void doWaitingTasks(long gen, Set<BoardNet> previousNets) {
-        // while the worker threads are going, calculate the hashes and add them to the hashes map.
-        // Iterate in REVERSE order as the worker threads, so there is less chance
-        // of the worker threads blocking main or vice-versa, while calculating the hashes
-        LinkedList<BoardNet> netsCopy = new LinkedList<>(currentNets);
-        for (Iterator<BoardNet> iterator = netsCopy.descendingIterator();
-             iterator.hasNext();) {
-
-            BoardNet net = iterator.next();
-            if (net.generation < gen) continue; //only do this for new nets
+    private static void doOtherWaitingTasks(long gen) {
+        // add hashes
+        long previousGen = gen - 1;
+        for (BoardNet net : fittest) {
+            if (net.generation < previousGen) continue; //only do this for new nets
             long hash = net.getNeuralHash();
             if (hashes.containsKey(hash)) checkForHashCollision(hash, net);
             hashes.put(hash, net);
         }
 
-        if (fittest != previousNets) {
-            // they are the same instance only on the first iteration, in which case we shouldn't process them
-            // check legacy is processing from the *PREVIOUS* round
-            checkLegacy(previousNets, gen - 1);
+        synchronized (threadsIdle) {
+            if (threadsIdle.size() >= THREADS) return;
         }
+        filterHashes(); //garbage collection, nice to do but not necessary every time
 
-        Set<BoardNet> legaciesToCheck = new LinkedHashSet<>(legacy.keySet());
-        legaciesToCheck.retainAll(currentNets);
-
-        if (legaciesToCheck.size() > 0) {
-            //wait for the currentNets iterator to finish then swap out for the legaciesToCheck iterator.
-            // The swapping out task is mostly waiting, so this can be delegated to a small extra thread
-            // while the main thread focuses on filterHashes()
-            Thread iteratorSwapper = new Thread(() -> {
-                synchronized (currentIterator) {
-                    while (currentIterator.value.hasNext()) {
-                        try {
-                            currentIterator.wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace(System.err);
-                        }
-                    }
-                    currentIterator.value = legaciesToCheck.iterator();
-                    currentIterator.notifyAll();
-                }
-            });
-
-            iteratorSwapper.start();
-            filterHashes();
-            boolean addedLegacies = false;
-
-            while (runRound() && iteratorSwapper.isAlive()) { }
-
-            while (iteratorSwapper.isAlive()) {
-                try { iteratorSwapper.join(); }
-                catch (InterruptedException e) { e.printStackTrace(System.err); }
-            }
-
-            currentNets.addAll(legaciesToCheck); //wait till after filterHashes is done AND the currentNets iterator
-                                            // is finished so we don't get a ConcurrentModificationException
-
-        } else {
-            synchronized (threadsIdle) {
-                if (threadsIdle.size() >= THREADS) return;
-            }
-            filterHashes(); //garbage collection, nice to do but not necessary every time
-        }
-
-        while(runRound()) { }
+        while (runRound()) { }
         waitForWorkerThreads();
     }
 
     private static final BoardInterface mainsBoard = new BoardInterface();
 
     private static boolean runRound() {
-        if (finished) return false;
+        if (exit) return false;
         BoardNet net;
         synchronized (currentIterator) {
-            if (finished || !currentIterator.value.hasNext()) return false;
+            if (exit || !currentIterator.value.hasNext()) return false;
             net = currentIterator.value.next();;
             currentIterator.notifyAll();
         }
@@ -435,7 +319,7 @@ public class TestAddNeurons extends Thread {
 
     private static void waitForWorkerThreads() {
         synchronized (threadsIdle) {
-            while (threadsIdle.size() < THREADS && !finished) {
+            while (threadsIdle.size() < THREADS && !exit) {
                 try {
                     threadsIdle.wait();
 
@@ -446,6 +330,135 @@ public class TestAddNeurons extends Thread {
         }
     }
 
+    private static boolean isRandLineage(BoardNet net) {
+        long[] lineage = net.getLineage();
+
+        return lineage.length == 0
+                ? net == RAND_NET
+                : lineage[lineage.length - 1] == RAND_HASH;
+    }
+
+    private static void processLegacies(long gen) {
+        netTracker.cullOld(gen - 1);
+
+        Set<BoardNet> legaciesToCheck = new LinkedHashSet<>();
+
+        // The worst fitnesses are allowed to attempt again, rather than using their saved
+        // fitnesses for the next (upto) 16 rounds
+
+        int worstCount = 0;
+        long genPlusRetest = gen + RETEST_FREQUENCY;
+
+        for (Iterator<BoardNetFitness> iterator = netTracker.getFitnesses().descendingIterator();
+                iterator.hasNext();) {
+
+            BoardNetFitness fitness = iterator.next();
+            BoardNet net = fitness.net;
+            if (net == null) throw new NullPointerException();
+
+            if (worstCount < RETAIN_BEST) {
+                if (!currentNets.contains(net)) {
+                    worstCount++;
+                    legaciesToCheck.add(net);
+                }
+
+            } else if (gen - fitness.generation > RETEST_FREQUENCY) {
+                if (!currentNets.contains(net)) legaciesToCheck.add(net);
+
+            } else if (!KEEP_EDGE_AND_RAND.keep(genPlusRetest, netTracker.getGenRating(fitness.net), fitness.net)) {
+                if (!currentNets.contains(net)) legaciesToCheck.add(net);
+            }
+
+        }
+
+
+        if (legaciesToCheck.size() == 0) return;
+
+
+        //wait for the currentNets iterator to finish then swap out for the legaciesToCheck iterator.
+        // The swapping out task is mostly waiting, so this can be delegated to a small extra thread
+        // while the main thread focuses on filterHashes()
+        Thread iteratorSwapper = new Thread(() -> {
+            synchronized (currentIterator) {
+                while (currentIterator.value.hasNext()) {
+                    try {
+                        currentIterator.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace(System.err);
+                    }
+                }
+                currentIterator.value = legaciesToCheck.iterator();
+                currentIterator.notifyAll();
+            }
+        });
+
+        iteratorSwapper.start();
+        filterHashes();
+
+        while (iteratorSwapper.isAlive()) {
+            try {
+                iteratorSwapper.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace(System.err);
+            }
+        }
+
+        currentNets.addAll(legaciesToCheck); //wait till after filterHashes is done AND the currentNets iterator
+                                            // is finished so we don't get a ConcurrentModificationException
+    }
+
+    private static void checkForRandNets() {
+        randNetsToKeep.clear();
+
+        Iterator<BoardNetFitness> oldF = netTracker.getFitnesses().stream().filter(RAND_NET_FITNESS_FILTER).iterator();
+        Iterator<BoardNetFitness> newF = fitnesses.stream().filter(RAND_NET_FITNESS_FILTER).iterator();
+
+        BoardNetFitness bestRand = null;
+        BoardNetFitness next = null;
+
+        while (randNetsToKeep.size() < MIN_RAND_LINEAGE_RETAINED) {
+            if (next == null) {
+                if (newF.hasNext()) next = newF.next();
+                else break;
+                if (next.net == null) throw new NullPointerException();
+            }
+
+            if (bestRand == null) {
+                if (oldF.hasNext()) {
+                    bestRand = oldF.next();
+                    if (bestRand.net == null) throw new NullPointerException();
+
+                } else {
+                    randNetsToKeep.add(next.net);
+                    while (randNetsToKeep.size() < MIN_RAND_LINEAGE_RETAINED && newF.hasNext()) {
+                        next = newF.next();
+                        if (next.net == null) throw new NullPointerException();
+                        randNetsToKeep.add(next.net);
+                    }
+                    break;
+                }
+            }
+
+            if (((next == bestRand) && (next = null) ==  null) || next.compareTo(bestRand) > 0) {
+                randNetsToKeep.add(bestRand.net);
+                bestRand = null;
+
+            } else {
+                randNetsToKeep.add(next.net);
+                next = null;
+            }
+        }
+
+        if (randNetsToKeep.size() > 0) {
+            fittest.add(randNetsToKeep.get(0));
+
+        } else {
+            fittest.add(RAND_NET);
+        }
+    }
+
+
+    /*
     /** This check is done on the _previous_ rounds' results while the current round is running,
      * in order to optimize concurrency usage. The invoker will pass gen - 1 as the gen arg, along
      * with last rounds' 'fittest' set and set of nets.  This method cannot use the currentNets
@@ -453,7 +466,7 @@ public class TestAddNeurons extends Thread {
      *
      * @param fittest
      * @param gen
-     */
+     *
     private static void checkLegacy(Set<BoardNet> previousNets, long gen) {
         // previousNets is immediately mutated to remove the fittest nets, and therefore is effectively
         // 'notFittest'
@@ -467,7 +480,7 @@ public class TestAddNeurons extends Thread {
              (and remove if that brings it up to the current generation).
              This makes it so that very old legacies still need to be in the "fittest" Set 1/3rd of the time
              in order to be kept as legacy (two times not in the set, to one time in the set, in order to survive)
-             */
+             *//*
         });
 
         for (BoardNet net : previousNets) {
@@ -520,6 +533,7 @@ public class TestAddNeurons extends Thread {
             }
         }
     }
+    */
 
     private static void checkForHashCollision(long hash, BoardNet newNet) {
         BoardNet oldNet = hashes.get(hash);
@@ -618,7 +632,7 @@ public class TestAddNeurons extends Thread {
         boolean addedToThreadsIdle = false;
         try {
             synchronized (currentIterator) {
-                if (finished) return null;
+                if (exit) return null;
                 while (currentIterator.value == null || !currentIterator.value.hasNext()) {
                     synchronized (threadsIdle) {
                         addedToThreadsIdle = true;
@@ -634,7 +648,7 @@ public class TestAddNeurons extends Thread {
                         System.err.println("Worker tread, Id: " + current.getId());
                         e.printStackTrace(System.err);
                     }
-                    if (finished) return null;
+                    if (exit) return null;
                 }
                 currentIterator.notifyAll();
                 return currentIterator.value.next();
@@ -691,7 +705,7 @@ public class TestAddNeurons extends Thread {
      */
 
     private static void waitForThreadsToExit(BufferedReader reader) {
-        finished = true;
+        exit = true;
         System.err.println("\n*****************************************************************************\n\n"
                 + "PROCESS INTERRUPTED ... waiting for threads to finish\n"
                 + "Press Enter to continue without waiting...\n"
@@ -795,8 +809,8 @@ public class TestAddNeurons extends Thread {
         //System.out.println("\nMain thread is filtering hashes to allow for garbage collection of extinct lineages\n");
 
         Set<Long> preserve = new TreeSet<>();
-        for (Object nets : List.of(currentNets, legacy.keySet())) {
-            for (BoardNet net : (Iterable<BoardNet>)nets) {
+        for (Set<BoardNet> nets : List.of(currentNets, netTracker)) {
+            for (BoardNet net : nets) {
                 preserve.add(net.getNeuralHash());
                 for (long hash : net.getLineage()) {
                     preserve.add(hash);

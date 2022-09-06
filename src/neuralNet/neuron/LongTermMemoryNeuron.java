@@ -32,7 +32,7 @@ public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
      * begins fading in.  It will not be included in any weighted calculations until then
      */
     public final int delay;
-    private final transient double delayDbl;
+    private transient double delayDbl;
 
     /**
      * Number of rounds over which a memory starts to fade in to long-term memory.
@@ -44,16 +44,29 @@ public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
      * the relative weight of ALL fadeIn values (after their weighted avg is calculated)
      * as compared to ONE full-strength memory
      */
-    private final transient double fadeInWeight;
-    private final transient double fadeInPlusOne;
+    private transient double fadeInWeight;
+    private transient double fadeInPlusOne;
 
-    private final transient AccumulatedAverage accumulated = new AccumulatedAverage();
-    private final transient double[] recent;
+    private transient AccumulatedAverage accumulated = new AccumulatedAverage();
+    private transient double[] recent;
     private transient int index = 0;
     private transient int size = 0;
     private transient short nextOutput;
     private transient List<Param> tweakingParams;
 
+    protected Object readResolve() throws ObjectStreamException {
+        this.delayDbl = this.delay;
+        this.fadeInWeight = (double) fadeIn / 2.0;
+        this.fadeInPlusOne = this.fadeIn + 1;
+        this.accumulated = new AccumulatedAverage();
+
+        if (this.delay == 0 && this.fadeIn == 0) this.recent = null;
+        else this.recent = new double[this.delay + this.fadeIn];
+
+        return super.readResolve();
+    }
+
+    /*
     private Object readResolve() throws ObjectStreamException {
         return new LongTermMemoryNeuron(this, null);
     }
@@ -71,6 +84,7 @@ public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
         if (delay == 0 && fadeIn == 0) this.recent = null;
         else this.recent = new double[delay + fadeIn];
     }
+     */
 
     public LongTermMemoryNeuron(LongTermMemoryNeuron cloneFrom) {
         super(cloneFrom);
@@ -383,7 +397,7 @@ public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
     public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
 
     protected long calcHash() {
-        return HASH_HEADER ^ Long.rotateRight(this.inputsMutable.get(0).getNeuralHash(), 17)
+        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
                 ^ Long.rotateLeft(this.defaultVal & 0xffff, 51)
                 ^ Long.rotateLeft(this.delay, 37) ^ Long.rotateLeft(this.fadeIn, 23);
     }

@@ -16,6 +16,8 @@ import static neuralNet.util.Util.*;
  * also expressed as coefficient of pi
  */
 public class StaticWaveProvider extends CachingProvider implements SignalProvider.Tweakable<StaticWaveProvider> {
+    public static final long serialVersionUID = 5163850789113791923L;
+
     public static final List<WaveFunction> WAVE_FUNCTIONS =
             List.of(SineWave.INSTANCE, TriangleWave.INSTANCE, SawWave.INSTANCE, SquareWave.INSTANCE);
 
@@ -39,16 +41,23 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
 
     public final WaveFunction waveFunction;
 
-    public final boolean sign;
+    private transient boolean sign;
     public final double phase;
-    public transient final double period;
+    public final double period;
 
     public transient final double incrementPerRound;
     public transient final boolean increment2orMore; // when the magnitude (abs) of the increment is >= 2.0
 
     private transient double currentPhase;
 
-    private Object readResolve() throws ObjectStreamException {
+    protected Object readResolve() throws ObjectStreamException {
+        this.sign = this.period > 0;
+        this.currentPhase = this.phase;
+        return super.readResolve();
+    }
+
+    /*
+    protected Object readResolve() throws ObjectStreamException {
         return new StaticWaveProvider(this, (Void)null);
     }
 
@@ -65,6 +74,7 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
 
         this.currentPhase = this.phase;
     }
+     */
 
     public StaticWaveProvider(WaveFunction waveFunction, double period, double phase) {
         super();

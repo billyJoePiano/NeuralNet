@@ -3,14 +3,15 @@ package neuralNet.neuron;
 import neuralNet.function.*;
 import neuralNet.network.*;
 
-import java.io.*;
 import java.util.*;
 
 public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunction
         implements SignalProvider.Tweakable<CachingNeuronUsingTweakableFunction> {
+    public static final long serialVersionUID = -6906896660343498019L;
 
     public final long lastTweaked;
 
+    /*
     @Override
     protected Object readResolve() throws ObjectStreamException {
         return new CachingNeuronUsingTweakableFunction(this, null);
@@ -20,6 +21,7 @@ public class CachingNeuronUsingTweakableFunction extends CachingNeuronUsingFunct
         super(deserializedFrom, (Void)null);
         this.lastTweaked = deserializedFrom.lastTweaked;
     }
+     */
 
     public CachingNeuronUsingTweakableFunction(CachingNeuronUsingTweakableFunction cloneFrom) {
         super(cloneFrom);

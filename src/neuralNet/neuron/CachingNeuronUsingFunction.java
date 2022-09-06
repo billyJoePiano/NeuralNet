@@ -2,12 +2,14 @@ package neuralNet.neuron;
 
 import neuralNet.function.*;
 
-import java.io.*;
 import java.util.*;
 
 public class CachingNeuronUsingFunction extends CachingNeuron {
+    public static final long serialVersionUID = -3240982009517495015L;
+
     public final NeuralFunction outputFunction;
 
+    /*
     protected Object readResolve() throws ObjectStreamException {
         return new CachingNeuronUsingFunction(this, (Void)null);
     }
@@ -16,6 +18,7 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
         super(deserializedFrom, null);
         this.outputFunction = deserializedFrom.outputFunction;
     }
+     */
 
     public CachingNeuronUsingFunction(CachingNeuronUsingFunction cloneFrom) {
         super(cloneFrom);
@@ -77,15 +80,15 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
 
     @Override
     public long getNeuralHash() {
-        long hash = this.outputFunction.getNeuralHash() ^ Long.rotateLeft((long)this.inputsMutable.size(), 27);
+        long hash = this.outputFunction.getNeuralHash() ^ Long.rotateLeft((long)this.inputs.size(), 27);
         if (this.outputFunction.inputOrderMatters()) {
             int i = 0;
-            for (SignalProvider provider: this.inputsMutable) {
+            for (SignalProvider provider: this.inputs) {
                 hash ^= Long.rotateRight(provider.getNeuralHash(), i += 17);
             }
 
         } else {
-            for (SignalProvider provider : this.inputsMutable) {
+            for (SignalProvider provider : this.inputs) {
                 hash ^= Long.rotateRight(provider.getNeuralHash(), 17);
             }
         }

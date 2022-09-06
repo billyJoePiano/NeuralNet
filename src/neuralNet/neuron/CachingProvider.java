@@ -2,29 +2,33 @@ package neuralNet.neuron;
 
 import neuralNet.util.*;
 
+import java.io.*;
 import java.util.*;
 
 public abstract class CachingProvider implements SignalProvider {
-    private final SerializableWeakHashSet<SignalConsumer> consumersMutable;
-    public final transient Set<SignalConsumer> consumers;
+    public static final long serialVersionUID = 5531306124264988853L;
+
+    private final Set<SignalConsumer> consumers = new SerializableWeakHashSet<>();;
+    private transient Set<SignalConsumer> consumersView = ((SerializableWeakHashSet<SignalConsumer>) this.consumers).getView();;
 
     private transient Short output;
 
-    protected CachingProvider(CachingProvider deserializedFrom, Void v) {
-        this.consumersMutable = deserializedFrom.consumersMutable;
-        this.consumers = deserializedFrom.consumers;
+    protected Object readResolve() throws ObjectStreamException {
+        this.consumersView = ((SerializableWeakHashSet<SignalConsumer>) this.consumers).getView();
+        return this;
     }
 
-    protected CachingProvider() {
-        this.consumersMutable = new SerializableWeakHashSet<>();
-        this.consumers = this.consumersMutable.getView();
+    /*
+    protected CachingProvider(CachingProvider deserializedFrom, Void v) {
+        this.consumers = deserializedFrom.consumers;
+        this.consumersView = deserializedFrom.consumersView;
     }
+     */
+
+    protected CachingProvider() { }
 
     protected CachingProvider(CachingProvider cloneFrom) {
-        this.consumersMutable = new SerializableWeakHashSet<>();
-        this.consumers = this.consumersMutable.getView();
-
-        this.consumersMutable.addAll(cloneFrom.consumersMutable);
+        this.consumers.addAll(cloneFrom.consumers);
     }
 
     protected abstract short calcOutput();
@@ -54,22 +58,22 @@ public abstract class CachingProvider implements SignalProvider {
 
     @Override
     public Set<SignalConsumer> getConsumers() {
-        return this.consumers;
+        return this.consumersView;
     }
 
     @Override
     public boolean addConsumer(SignalConsumer consumer) {
-        return this.consumersMutable.add(consumer);
+        return this.consumers.add(consumer);
     }
 
     @Override
     public boolean addConsumers(Collection<? extends SignalConsumer> consumers) {
-        return this.consumersMutable.addAll(consumers);
+        return this.consumers.addAll(consumers);
     }
 
     @Override
     public boolean removeConsumer(SignalConsumer consumer) {
-        return this.consumersMutable.remove(consumer);
+        return this.consumers.remove(consumer);
     }
 
     /*
@@ -90,9 +94,9 @@ public abstract class CachingProvider implements SignalProvider {
 
     @Override
     public void replaceConsumers(Map<SignalConsumer, SignalConsumer> neuronMap) {
-        Set<SignalConsumer> newConsumers = new HashSet<>(this.consumersMutable.size());
+        Set<SignalConsumer> newConsumers = new HashSet<>(this.consumers.size());
 
-        for (SignalConsumer orig : this.consumersMutable) {
+        for (SignalConsumer orig : this.consumers) {
             SignalConsumer replacement = neuronMap.get(orig);
             if (replacement == null) {
                 System.err.println("UNEXPECTED: missing SignalConsumer replacement: " + orig);
@@ -101,8 +105,8 @@ public abstract class CachingProvider implements SignalProvider {
             newConsumers.add(replacement);
         }
 
-        this.consumersMutable.clear();
-        this.consumersMutable.addAll(newConsumers);
+        this.consumers.clear();
+        this.consumers.addAll(newConsumers);
     }
 
     /*

@@ -4,6 +4,7 @@ import neuralNet.evolve.*;
 import neuralNet.neuron.*;
 import neuralNet.util.*;
 
+import java.io.*;
 import java.util.*;
 
 public abstract class NeuralNet<S extends Sensable<S>,
@@ -35,35 +36,42 @@ public abstract class NeuralNet<S extends Sensable<S>,
     public final long generation;
     private final long[] lineage;
 
-    private final SerializableWeakHashSet<SignalProvider> providersMutable;
-    private final SerializableWeakHashSet<SignalConsumer> consumersMutable;
+    private final SerializableWeakHashSet<SignalProvider> providers;
+    private final SerializableWeakHashSet<SignalConsumer> consumers;
 
     private SerializableWeakRef<NoOp> noOp;
 
-    public final transient Set<SignalProvider> providers;
-    public final transient Set<SignalConsumer> consumers;
+    private transient Set<SignalProvider> providersView;
+    private transient Set<SignalConsumer> consumersView;
     private transient S sensedObjected;
     private transient long round = 0;
 
     private transient Long hashCache = null;
 
+    protected Object readResolve() throws ObjectStreamException {
+        this.providersView = this.providers.getView();
+        this.consumersView = this.consumers.getView();
+        if (this.generation > CURRENT.generation) CURRENT.generation = this.generation;
+        return this;
+    }
+
     protected NeuralNet(N deserializedFrom, Void v) {
         NeuralNet<S, N, C> df = deserializedFrom;
         this.lineage = df.lineage;
         this.generation = df.generation;
-        this.providersMutable = df.providersMutable;
-        this.consumersMutable = df.consumersMutable;
-        this.providers = this.providersMutable.getView();
-        this.consumers = this.consumersMutable.getView();
+        this.providers = df.providers;
+        this.consumers = df.consumers;
+        this.providersView = this.providers.getView();
+        this.consumersView = this.consumers.getView();
     }
 
     protected NeuralNet() {
         this.generation = CURRENT.generation;
         this.lineage = new long[0];
-        this.providersMutable = new SerializableWeakHashSet<>();
-        this.consumersMutable = new SerializableWeakHashSet<>();
-        this.providers = this.providersMutable.getView();
-        this.consumers = this.consumersMutable.getView();
+        this.providers = new SerializableWeakHashSet<>();
+        this.consumers = new SerializableWeakHashSet<>();
+        this.providersView = this.providers.getView();
+        this.consumersView = this.consumers.getView();
     }
 
     protected NeuralNet(NeuralNet<?, ?, ?> cloneFrom) {
@@ -82,10 +90,10 @@ public abstract class NeuralNet<S extends Sensable<S>,
             this.lineage = lineage;
         }
 
-        this.providersMutable = new SerializableWeakHashSet<>();
-        this.consumersMutable = new SerializableWeakHashSet<>();
-        this.providers = this.providersMutable.getView();
-        this.consumers = this.consumersMutable.getView();
+        this.providers = new SerializableWeakHashSet<>();
+        this.consumers = new SerializableWeakHashSet<>();
+        this.providersView = this.providers.getView();
+        this.consumersView = this.consumers.getView();
     }
 
     public long[] getLineage() {
@@ -131,7 +139,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
         Map<SignalConsumer, SignalConsumer> consumers = this.populateDecisionCloneMap(cloneFrom, consumersMap);
 
         // clone allProviders from the old instance, and put into the providersMap
-        for (SignalProvider p : (Set<SignalProvider>)cloneFrom.providersMutable) {
+        for (SignalProvider p : (Set<SignalProvider>)cloneFrom.providers) {
             providers.computeIfAbsent(p, old -> {
                 SignalProvider mine = old.clone();
 
@@ -146,7 +154,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
             });
         }
 
-        for (SignalConsumer c : (Set<SignalConsumer>)cloneFrom.consumersMutable) {
+        for (SignalConsumer c : (Set<SignalConsumer>)cloneFrom.consumers) {
             consumers.computeIfAbsent(c, old -> {
                 SignalConsumer mine = old.clone();
                 if (old instanceof SignalProvider || mine instanceof SignalProvider) {
@@ -156,17 +164,17 @@ public abstract class NeuralNet<S extends Sensable<S>,
             });
         }
 
-        this.providersMutable.addAll(providers.values());
-        this.consumersMutable.addAll(consumers.values());
+        this.providers.addAll(providers.values());
+        this.consumers.addAll(consumers.values());
 
-        for (SignalProvider provider : this.providersMutable) {
+        for (SignalProvider provider : this.providers) {
             provider.replaceConsumers(consumers);
             if (provider instanceof HashCacher hashCacher) {
                 hashCacher.clearHashCache();
             }
         }
 
-        for (SignalConsumer consumer : this.consumersMutable) {
+        for (SignalConsumer consumer : this.consumers) {
             consumer.replaceInputs(providers);
         }
     }
@@ -184,12 +192,12 @@ public abstract class NeuralNet<S extends Sensable<S>,
                                 Map<SignalConsumer, SignalConsumer> consumerSubs);
 
     public Set<SignalProvider> getProviders() {
-        return this.providers;
+        return this.providersView;
     }
 
     @Override
     public Set<SignalConsumer> getConsumers() {
-        return this.consumers;
+        return this.consumersView;
     }
 
     public long getRound() {
@@ -197,13 +205,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
     }
 
     public void before() {
-        for (SignalProvider neuron : this.providersMutable) {
+        for (SignalProvider neuron : this.providers) {
             neuron.before();
         }
     }
 
     public void after() {
-        for (SignalProvider neuron : this.providersMutable) {
+        for (SignalProvider neuron : this.providers) {
             neuron.after();
         }
         this.round++;
@@ -211,7 +219,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
     public void reset() {
         this.round = 0;
-        for (SignalProvider neuron : this.providersMutable) {
+        for (SignalProvider neuron : this.providers) {
             neuron.reset();
         }
     }
@@ -224,10 +232,10 @@ public abstract class NeuralNet<S extends Sensable<S>,
      * @return 'this', for chaining
      *
      */
-    public N traceNeuronsSet() {
+    public synchronized N traceNeuronsSet() {
         this.hashCache = null;
-        this.providersMutable.clear();
-        this.consumersMutable.clear();
+        this.providers.clear();
+        this.consumers.clear();
 
         Set<SignalProvider> knownProviders = new HashSet<>(this.getSensors());
         Set<SignalConsumer> knownConsumers = new HashSet<>(this.getDecisionNodes());
@@ -242,11 +250,11 @@ public abstract class NeuralNet<S extends Sensable<S>,
             knownConsumers.addAll(consumersInvoked);
             knownProviders.addAll(providersInvoked);
 
-            providersInvoked.retainAll(this.providersMutable);
-            consumersInvoked.retainAll(this.consumersMutable);
+            providersInvoked.retainAll(this.providers);
+            consumersInvoked.retainAll(this.consumers);
         }
 
-        if (!(Objects.equals(providersInvoked, this.providersMutable) && Objects.equals(consumersInvoked, this.consumersMutable))) {
+        if (!(Objects.equals(providersInvoked, this.providers) && Objects.equals(consumersInvoked, this.consumers))) {
             throw new IllegalStateException();
         }
 
@@ -311,10 +319,10 @@ public abstract class NeuralNet<S extends Sensable<S>,
             for (ComplexNeuronMember member : complex.getMembers()) {
                 traceProvidersConsumers(member, providersInvoked, consumersInvoked);
             }
-            this.consumersMutable.addAll(complex.getMembers());
+            this.consumers.addAll(complex.getMembers());
 
         } else {
-            this.consumersMutable.add(neuron);
+            this.consumers.add(neuron);
         }
     }
 
@@ -343,7 +351,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
             }
         }
 
-        this.providersMutable.add(neuron);
+        this.providers.add(neuron);
     }
 
 
@@ -366,7 +374,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
     private Map<SignalProvider, SignalProvider> populateSensorCloneMap(NeuralNet clonedFrom,
                                                                     Map<SignalProvider, SignalProvider> usingMap) {
 
-        if (usingMap == null) usingMap = new HashMap<>(((NeuralNet<S, N, C>)clonedFrom).providersMutable.size());
+        if (usingMap == null) usingMap = new HashMap<>(((NeuralNet<S, N, C>)clonedFrom).providers.size());
 
         for (Iterator<? extends SensorNode<S, N>>
                 origIt = clonedFrom.getSensors().listIterator(),
@@ -606,7 +614,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
         Set<HashCacher> hashCachers = new HashSet<>();
 
-        for (SignalProvider neuron : this.providersMutable) {
+        for (SignalProvider neuron : this.providers) {
             if (neuron instanceof HashCacher hashCacher) {
                 hashCachers.add(hashCacher);
             }

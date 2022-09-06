@@ -12,8 +12,8 @@ import static neuralNet.evolve.NeuronSelector.*;
 public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
     public static final int MAX_NEW_INPUTS = 10;
-    public static final int MAX_NEW_CONSUMERS = 5;
-    public static final int MAX_NEW_NEURONS = 8;
+    public static final int MAX_NEW_CONSUMERS = 10;
+    public static final int MAX_NEW_NEURONS = 30;
 
     private N net;
     private Set<SignalConsumer> needsRepopulation;

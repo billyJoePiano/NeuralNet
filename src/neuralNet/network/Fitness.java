@@ -8,4 +8,7 @@ public interface Fitness<C extends DecisionConsumer<?, C, F>,
 
     @Override
     public int compareTo(F other);
+
+    public DecisionProvider<?, ?, C> getDecisionProvider();
+    public long getGeneration(); // generation of the Fitness test, NOT the Net/DecisionProvider it was testing
 }

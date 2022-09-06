@@ -49,12 +49,18 @@ public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
      */
     public final int fadeOut;
 
-    private final transient double[] memory;
+    private transient double[] memory;
     private transient int index = 0;
     private transient int size = 0;
 
     private transient short nextOutput;
 
+    protected Object readResolve() throws ObjectStreamException {
+        this.memory = new double[this.delay + this.fadeIn + this.length + this.fadeOut];
+        return super.readResolve();
+    }
+
+    /*
     private Object readResolve() throws ObjectStreamException {
         return new ShortTermMemoryNeuron(this, null);
     }
@@ -69,6 +75,7 @@ public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
         this.fadeOut = deserializedFrom.fadeOut;
         this.memory = new double[delay + fadeIn + length + fadeOut];
     }
+     */
 
     /**
      * Behaves as an immediate short-term memory ... the most recent round (previous round) is at full weight for
@@ -361,7 +368,7 @@ public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
 
     @Override
     protected long calcHash() {
-        return HASH_HEADER ^ Long.rotateRight(this.inputsMutable.get(0).getNeuralHash(), 17)
+        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
                 ^ Long.rotateLeft(this.defaultVal & 0xffff, 51)
                 ^ Long.rotateLeft(this.delay, 37)  ^ Long.rotateLeft(this.fadeIn, 29)
                 ^ Long.rotateLeft(this.length, 17) ^ Long.rotateLeft(this.fadeOut, 7);

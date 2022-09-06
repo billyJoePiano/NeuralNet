@@ -1,46 +1,57 @@
 package neuralNet.neuron;
 
+import java.io.*;
 import java.util.*;
 
 public abstract class CachingNeuron extends CachingProvider implements Neuron {
-    protected final ArrayList<SignalProvider> inputsMutable;
-    public final transient List<SignalProvider> inputs;
+    public static final long serialVersionUID = 5330443895922218984L;
 
+    protected final ArrayList<SignalProvider> inputs;
+    private transient List<SignalProvider> inputsView;
+
+    @Override
+    protected Object readResolve() throws ObjectStreamException {
+        this.inputsView = Collections.unmodifiableList(this.inputs);
+        return super.readResolve();
+    }
+
+    /*
     protected CachingNeuron(CachingNeuron deserializedFrom, Void v) {
         super(deserializedFrom, (Void)null);
-        this.inputsMutable = deserializedFrom.inputsMutable;
-        this.inputs = Collections.unmodifiableList(this.inputsMutable);
+        this.inputs = deserializedFrom.inputs;
+        this.inputsView = Collections.unmodifiableList(this.inputs);
     }
+     */
 
     protected CachingNeuron() {
         super();
-        this.inputsMutable = new ArrayList<>();
-        this.inputs = Collections.unmodifiableList(this.inputsMutable);
+        this.inputs = new ArrayList<>();
+        this.inputsView = Collections.unmodifiableList(this.inputs);
     }
 
     protected CachingNeuron(CachingNeuron cloneFrom) {
         super(cloneFrom);
-        this.inputsMutable = new ArrayList<>();
-        this.inputs = Collections.unmodifiableList(this.inputsMutable);
+        this.inputs = new ArrayList<>();
+        this.inputsView = Collections.unmodifiableList(this.inputs);
 
-        this.inputsMutable.addAll(cloneFrom.inputsMutable);
+        this.inputs.addAll(cloneFrom.inputs);
     }
 
     protected CachingNeuron(List<SignalProvider> inputs) {
-        this.inputsMutable = new ArrayList<>();
-        this.inputs = Collections.unmodifiableList(this.inputsMutable);
+        this.inputs = new ArrayList<>();
+        this.inputsView = Collections.unmodifiableList(this.inputs);
         this.setInputs(inputs);
     }
 
     protected CachingNeuron(ArrayList<SignalProvider> inputs, List<SignalProvider> inputsView) {
-        this.inputsMutable = inputs;
-        this.inputs = inputsView;
+        this.inputs = inputs;
+        this.inputsView = inputsView;
     }
 
-    protected CachingNeuron(CachingNeuron cloneConsumersFrom, ArrayList<SignalProvider> inputsMutable, List<SignalProvider> inputsView) {
+    protected CachingNeuron(CachingNeuron cloneConsumersFrom, ArrayList<SignalProvider> inputs, List<SignalProvider> inputsView) {
         super(cloneConsumersFrom);
-        this.inputsMutable = inputsMutable;
-        this.inputs = inputsView;
+        this.inputs = inputs;
+        this.inputsView = inputsView;
     }
 
     protected abstract short calcOutput(List<SignalProvider> inputs);
@@ -50,22 +61,22 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     @Override
     public List<SignalProvider> getInputs() {
-        return this.inputs;
+        return this.inputsView;
     }
 
     @Override
     protected short calcOutput() {
-        return this.calcOutput(this.inputs);
+        return this.calcOutput(this.inputsView);
     }
 
     @Override
     public int inputsSize() {
-        return this.inputsMutable.size();
+        return this.inputs.size();
     }
 
     @Override
     public boolean containsInput(SignalProvider provider) {
-        return this.inputsMutable.contains(provider);
+        return this.inputs.contains(provider);
     }
 
     @Override
@@ -80,19 +91,19 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
                     + "  Inputs paired?: " + this.pairedInputs());
         }
 
-        List<SignalProvider> oldInputs = new ArrayList<>(this.inputsMutable);
-        this.inputsMutable.clear();
-        this.inputsMutable.ensureCapacity(inputs.size());
-        this.inputsMutable.addAll(inputs);
+        List<SignalProvider> oldInputs = new ArrayList<>(this.inputs);
+        this.inputs.clear();
+        this.inputs.ensureCapacity(inputs.size());
+        this.inputs.addAll(inputs);
 
-        this.populateConsumers(this.inputs, oldInputs);
+        this.populateConsumers(this.inputsView, oldInputs);
 
         if (this.checkForCircularReferences()) {
             //restore previous state, then throw exception
-            this.inputsMutable.clear();
-            this.inputsMutable.addAll(oldInputs);
+            this.inputs.clear();
+            this.inputs.addAll(oldInputs);
 
-            this.populateConsumers(oldInputs, this.inputsMutable);
+            this.populateConsumers(oldInputs, this.inputs);
 
             throw new IllegalArgumentException("Illegal circular neural loop!");
         }
@@ -100,11 +111,11 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     @Override
     public void addInput(SignalProvider newProvider) {
-        this.inputsMutable.add(newProvider);
+        this.inputs.add(newProvider);
         if (newProvider.addConsumer(this) && newProvider instanceof SignalConsumer newConsumer) {
             if (this.traceConsumers(newConsumer)) {
-                this.inputsMutable.remove(this.inputsMutable.size() - 1);
-                if (!this.inputsMutable.contains(newProvider)) newProvider.removeConsumer(this);
+                this.inputs.remove(this.inputs.size() - 1);
+                if (!this.inputs.contains(newProvider)) newProvider.removeConsumer(this);
                 throw new IllegalArgumentException("Illegal circular neural loop!");
             }
         }
@@ -112,11 +123,11 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     @Override
     public void addInput(int index, SignalProvider newProvider) {
-        this.inputsMutable.add(index, newProvider);
+        this.inputs.add(index, newProvider);
         if (newProvider.addConsumer(this) && newProvider instanceof SignalConsumer newConsumer) {
             if (this.traceConsumers(newConsumer)) {
-                this.inputsMutable.remove(index);
-                if (!this.inputsMutable.contains(newProvider)) newProvider.removeConsumer(this);
+                this.inputs.remove(index);
+                if (!this.inputs.contains(newProvider)) newProvider.removeConsumer(this);
                 throw new IllegalArgumentException("Illegal circular neural loop!");
             }
         }
@@ -124,16 +135,16 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     @Override
     public SignalProvider removeInput(int index) {
-        SignalProvider old = this.inputsMutable.remove(index);
-        if (!this.inputsMutable.contains(old)) old.removeConsumer(this);
+        SignalProvider old = this.inputs.remove(index);
+        if (!this.inputs.contains(old)) old.removeConsumer(this);
         return old;
     }
 
     @Override
     public boolean removeInput(SignalProvider removeAll) {
-        if (this.inputsMutable == null) return false;
+        if (this.inputs == null) return false;
         boolean removed = false;
-        for (Iterator<SignalProvider> iterator = this.inputsMutable.iterator();
+        for (Iterator<SignalProvider> iterator = this.inputs.iterator();
              iterator.hasNext();) {
 
             if (iterator.next() == removeAll) {
@@ -150,19 +161,19 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
             throws NullPointerException {
 
         if (newProvider == null) throw new NullPointerException();
-        if (this.inputsMutable == null) throw new IndexOutOfBoundsException(index);
+        if (this.inputs == null) throw new IndexOutOfBoundsException(index);
 
-        SignalProvider old = this.inputsMutable.set(index, newProvider);
-        if (!this.inputsMutable.contains(old)) old.removeConsumer(this);
+        SignalProvider old = this.inputs.set(index, newProvider);
+        if (!this.inputs.contains(old)) old.removeConsumer(this);
 
         if (newProvider.addConsumer(this) && newProvider instanceof SignalConsumer consumer) {
             //only do this check if this is actually a new consumer for the provider,
             // and there is a possibility of an infinite loop
 
             if (this.traceConsumers(consumer)) {
-                this.inputsMutable.set(index, old);
+                this.inputs.set(index, old);
                 old.addConsumer(this);
-                if (!this.inputsMutable.contains(newProvider)) newProvider.removeConsumer(this);
+                if (!this.inputs.contains(newProvider)) newProvider.removeConsumer(this);
                 throw new IllegalArgumentException("Illegal circular neural loop!");
             }
         }
@@ -174,16 +185,16 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
             throws IllegalArgumentException, NullPointerException {
 
         if (oldProvider == null || newProvider == null) throw new NullPointerException();
-        if (this.inputsMutable == null) return false;
+        if (this.inputs == null) return false;
 
-        boolean[] replaced = new boolean[this.inputsMutable.size()];
+        boolean[] replaced = new boolean[this.inputs.size()];
         boolean found = false;
 
-        for (int i = 0; i < this.inputsMutable.size(); i++) {
-            if (this.inputsMutable.get(i) == oldProvider) {
+        for (int i = 0; i < this.inputs.size(); i++) {
+            if (this.inputs.get(i) == oldProvider) {
                 replaced[i] = true;
                 found = true;
-                this.inputsMutable.set(i, newProvider);
+                this.inputs.set(i, newProvider);
             }
         }
 
@@ -191,7 +202,7 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
             return false;
         }
 
-        if (!this.inputsMutable.contains(oldProvider)) {
+        if (!this.inputs.contains(oldProvider)) {
             oldProvider.removeConsumer(this);
         }
 
@@ -203,11 +214,11 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
                 //undo everything... then throw exception
                 for (int i = 0; i < replaced.length; i++) {
                     if (replaced[i]) {
-                        this.inputsMutable.set(i, oldProvider);
+                        this.inputs.set(i, oldProvider);
                     }
                 }
                 oldProvider.addConsumer(this);
-                if (!this.inputsMutable.contains(newProvider)) newProvider.removeConsumer(this);
+                if (!this.inputs.contains(newProvider)) newProvider.removeConsumer(this);
 
                 throw new IllegalArgumentException("Illegal circular neural loop!");
             }
@@ -218,8 +229,8 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     @Override
     public void replaceInputs(Map<SignalProvider, SignalProvider> neuronMap) throws NoSuchElementException {
-        if (this.inputsMutable == null) return;
-        for (ListIterator<SignalProvider> iterator = this.inputsMutable.listIterator();
+        if (this.inputs == null) return;
+        for (ListIterator<SignalProvider> iterator = this.inputs.listIterator();
              iterator.hasNext();) {
 
             SignalProvider orig = iterator.next();
@@ -239,10 +250,10 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     @Override
     public void clearInputs() {
-        for (SignalProvider provider : this.inputsMutable) {
+        for (SignalProvider provider : this.inputs) {
             provider.removeConsumer(this);
         }
-        this.inputsMutable.clear();
+        this.inputs.clear();
     }
 
     /*public abstract long getProviderHash();

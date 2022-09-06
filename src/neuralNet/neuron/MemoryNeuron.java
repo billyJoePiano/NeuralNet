@@ -9,9 +9,13 @@ import java.util.*;
 public abstract class MemoryNeuron<M extends MemoryNeuron<M>> extends CachingNeuron
         implements SignalProvider.Tweakable<M>, HashCacher {
 
+    public static final long serialVersionUID = -2703258302368792678L;
+
+    /*
     protected MemoryNeuron(M deserializedFrom, Void v) {
         super(deserializedFrom);
     }
+     */
 
     protected MemoryNeuron() {
         super();

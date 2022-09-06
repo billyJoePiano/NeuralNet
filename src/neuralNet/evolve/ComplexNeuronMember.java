@@ -59,7 +59,7 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
             this.addInput(neuron);
         }
 
-        return new Fitness(avg.getAverage());
+        return new Fitness(avg.getAverage(), this.getInternalDecisionProvider());
     }
 
     default public void runLimitTrials(int inputIndex, int lastIndex,
@@ -106,15 +106,21 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
 
 
     public static class Fitness implements neuralNet.network.Fitness<ComplexNeuronMember, Fitness> {
+
         public final double avgNs;
         public final short signal;
+        public final DecisionProvider<?, ?, ComplexNeuronMember> net;
+        public final long generation = NeuralNet.getCurrentGeneration();
 
-        private Fitness(double avgNs) {
+        private Fitness(double avgNs, DecisionProvider<?, ?, ComplexNeuronMember> net) {
             if (avgNs == 0) this.signal = Short.MAX_VALUE;
             else if (!(avgNs > 0 && Double.isFinite(avgNs))) throw new IllegalArgumentException();
             else this.signal = roundClip(Math.log(avgNs) * NS_LOG_MULTIPLIER + NS_SIGNAL_OFFSET);
 
+            if (net == null) throw new NullPointerException();
+
             this.avgNs = avgNs;
+            this.net = net;
         }
 
         @Override
@@ -130,6 +136,16 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
             if (this.avgNs < other.avgNs) return -1;
             if (this.avgNs == other.avgNs) return 0;
             throw new IllegalStateException();
+        }
+
+        @Override
+        public DecisionProvider<?, ?, ComplexNeuronMember> getDecisionProvider() {
+            return this.net;
+        }
+
+        @Override
+        public long getGeneration() {
+            return this.generation;
         }
     }
 
