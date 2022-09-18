@@ -129,7 +129,7 @@ public class FixedValueProvider extends CachingProvider
 
     public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
     @Override
-    public long getNeuralHash() {
+    public long calcNeuralHash() {
         return HASH_HEADER | Long.rotateLeft(this.value & 0xffff, 29);
     }
 }

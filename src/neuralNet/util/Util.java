@@ -41,8 +41,9 @@ public abstract class Util {
     public static final double PI = Math.PI;
     public static final double TWO_PI = Math.PI * 2;
 
-    public static final double BILLION = 1_000_000_000;
-    public static final double MILLION = 1_000_000;
+    public static final double BILLION = 1_000_000_000.0;
+    public static final double MILLION = 1_000_000.0;
+    public static final long BILLION_LONG = 1_000_000_000L;
 
     /**
      * A true modulo operation (NOT a remainder) where all results are >= 0

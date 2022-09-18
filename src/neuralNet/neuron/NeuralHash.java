@@ -2,6 +2,7 @@ package neuralNet.neuron;
 
 import neuralNet.function.*;
 import neuralNet.network.*;
+import neuralNet.util.*;
 
 import java.util.*;
 
@@ -248,5 +249,97 @@ public class NeuralHash {
         double midpointLen = (double)(lineage1.length + lineage2.length) / 2.0;
         if (sharedAncestors > midpointLen) return 1.0;
         else return (double)sharedAncestors / midpointLen;
+    }
+
+    public static boolean checkForHashCollision(long hash, NeuralNet<?, ?, ?> net1, NeuralNet<?, ?, ?> net2) {
+        if (net1 == net2) return false;
+
+        System.err.println("Possible hash collision: " + toHex(hash)
+                + "\n\t" + net2 + "\n\t" + net1);
+
+        long[] newLin = net2.getLineage(), oldLin = net1.getLineage();
+        double kinship = NeuralHash.collisionKinship(hash, newLin, oldLin);
+        System.err.print("Kinship score: " + kinship);
+        double smallerSize = Math.max(1, Math.min(newLin.length, oldLin.length));
+        if (kinship < (smallerSize - 1) / smallerSize) {
+            System.err.println(" ... too small");
+            System.err.println("Lineages appear too different.  Probable hash collision");
+            return true;
+        }
+
+        System.err.println(" ... good.  Continuing to other checks");
+
+        List nodes1 = net1.getDecisionNodes();
+        List nodes2 = net2.getDecisionNodes();
+
+        int decisionsEqual = 0;
+        for (Object p : new DualIterable(nodes2, nodes1)) {
+            DualIterable.Pair<DecisionNode<?, ?>> pair = (DualIterable.Pair<DecisionNode<?, ?>>)p;
+
+            DecisionNode<?, ?> d1 = pair.value1(),
+                        d2 = pair.value2();
+
+            long hash1 = d1.getNeuralHash(), hash2 = d2.getNeuralHash();
+
+            if (hash1 != hash2) {
+                System.err.println("Decision nodes (" + d1.getDecisionId()
+                        + "," + d2.getDecisionId()  + ") had different hashes: "
+                        + NeuralHash.toHex(hash1) + "  " + NeuralHash.toHex(hash2));
+                break;
+            }
+
+            SignalProvider input1 = d1.getInputs().get(0);
+            SignalProvider input2 = d2.getInputs().get(0);
+
+            hash1 = input1.getNeuralHash();
+            hash2 = input2.getNeuralHash();
+
+            if (input1.getClass() != input2.getClass() || hash1 != hash2) {
+                System.err.println("Inputs for decision nodes (" + d1.getDecisionId()
+                        + "," + d2.getDecisionId()  + ") don't match "
+                        + input1 + "\n\t" + input2 + "\n\t" + hash1 + "\t" + hash2);
+                break;
+            }
+
+            if (input1 instanceof CachingNeuronUsingFunction func1) {
+                CachingNeuronUsingFunction func2 = (CachingNeuronUsingFunction) input2;
+                hash1 = func1.outputFunction.getNeuralHash();
+                hash2 = func2.outputFunction.getNeuralHash();
+
+                if (func1.outputFunction.getClass() != func2.outputFunction.getClass()
+                        || hash1 != hash2
+                        || func1.outputFunction.hashHeader()    != func2.outputFunction.hashHeader()) {
+
+                    System.err.println("Inputs' functions for decision nodes (" + d1.getDecisionId()
+                            + "," + d2.getDecisionId()  + ") don't match "
+                            + "\n\t" + func1.outputFunction + "\t" + func2.outputFunction
+                            + "\n\t" + hash1 + "\t" + hash2
+                            + "\n\t" + func1.outputFunction.hashHeader() + "\t" + func2.outputFunction.hashHeader());
+                    break;
+                }
+
+                if (func1 instanceof CachingNeuronUsingTweakableFunction tweak1) {
+                    CachingNeuronUsingTweakableFunction tweak2 = (CachingNeuronUsingTweakableFunction)input2;
+                    short[] toAchieve = tweak1.getTweakingParams(tweak2);
+                    for (short param : toAchieve) {
+                        if (param != 0) {
+                            System.err.println("toAchieve tweaks indicate the params are different\t"
+                                    + Util.toString(toAchieve));
+                            break;
+                        }
+                    }
+                }
+            }
+            decisionsEqual++;
+        }
+
+        if (decisionsEqual == 5) {
+            System.err.println("Decision nodes appear to have equivalent inputs.  Hash collision unlikely");
+            return false;
+
+        } else {
+            System.err.println("Decision nodes appear to have different inputs.  Almost certain hash collision");
+            return true;
+        }
     }
 }

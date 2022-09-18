@@ -85,7 +85,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         List<ComplexNeuronMember> outputs = new ArrayList<>(this.numOutputs);
         outputs.add(this);
         for (int i = 1; i < this.numOutputs; i++) {
-            outputs.add(new MultiOutput(this.net.decisionNodes.get(i)));
+            outputs.add(new SecondaryMember(this.net.decisionNodes.get(i)));
         }
         return Collections.unmodifiableList(outputs);
     }
@@ -155,10 +155,10 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         return this.net;
     }
 
-    public class MultiOutput extends CachingNeuron implements ComplexNeuronMember {
+    public class SecondaryMember extends CachingNeuron implements ComplexNeuronMember {
         private final InternalNet.Output decisionNode;
 
-        private MultiOutput(InternalNet.Output decisionNode) {
+        private SecondaryMember(InternalNet.Output decisionNode) {
             super(ComplexNeuron.this.inputs, ComplexNeuron.this.inputsView);
             this.decisionNode = decisionNode;
         }
@@ -234,8 +234,8 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         }
 
         @Override
-        public long getNeuralHash() {
-            return this.decisionNode.getNeuralHash();
+        public long calcNeuralHashFor(LoopingNeuron looper) {
+            return this.decisionNode.getInputs().get(0).getNeuralHashFor(looper);
         }
 
         @Override
@@ -413,8 +413,15 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
              * this internal sensor node
              */
             @Override
-            public long getNeuralHash() {
+            public long calcNeuralHash() {
                 return this.input.getNeuralHash();
+            }
+
+            @Override
+            public long getNeuralHashFor(LoopingNeuron looper) {
+                // no 'calcNeuralHashFor(looper)' method for a CachingSignalProvider (Sensors are not a CachingNeuron)
+                // ... overriding getNeuralHashFor instead
+                return this.input.getNeuralHashFor(looper);
             }
         }
 
@@ -440,7 +447,6 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
              * @return Neural hash of the SignalProvider of the inner net that provides the input signal to this
              * decision node
              */
-            @Override
             public long getNeuralHash() {
                 return this.getInputs().get(0).getNeuralHash();
             }
@@ -593,7 +599,7 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
     }
 
     @Override
-    public long getNeuralHash() {
-        return this.decisionNode0.getNeuralHash();
+    public long calcNeuralHashFor(LoopingNeuron looper) {
+        return this.decisionNode0.getInputs().get(0).getNeuralHashFor(looper);
     }
 }

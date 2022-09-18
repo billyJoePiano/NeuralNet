@@ -396,8 +396,9 @@ public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
 
     public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
 
-    protected long calcHash() {
-        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHash(), 17)
+    @Override
+    protected long calcNeuralHashFor(LoopingNeuron looper) {
+        return HASH_HEADER ^ Long.rotateRight(this.inputs.get(0).getNeuralHashFor(looper), 17)
                 ^ Long.rotateLeft(this.defaultVal & 0xffff, 51)
                 ^ Long.rotateLeft(this.delay, 37) ^ Long.rotateLeft(this.fadeIn, 23);
     }

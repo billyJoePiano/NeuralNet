@@ -226,8 +226,9 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
     }
 
     public static final long HASH_HEADER = NeuralHash.HEADERS.get(MethodHandles.lookup().lookupClass());
+
     @Override
-    public long getNeuralHash() {
+    public long calcNeuralHash() {
         return HASH_HEADER ^ Double.doubleToLongBits(this.period) ^ Double.doubleToLongBits(this.phase);
     }
 }

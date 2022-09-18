@@ -1,11 +1,18 @@
 package neuralNet.evolve;
 
+import neuralNet.network.*;
+
 import java.util.*;
 
-public class MutationCounts {
-    private MutationCounts() { throw new UnsupportedOperationException(); }
+public interface MutatorFactory<//S extends Sensable<S>,
+        P extends DecisionProvider<?, P, ?>> {
+        //C extends DecisionConsumer<S, C, ?>> {
 
-    public static int[] calc(int fittestCount, int netsToMake) {
+    public Collection<? extends Mutator<? extends P>> makeMutators(Collection<? extends P> forProviders);
+
+
+
+    public static int[] calcCounts(int fittestCount, int netsToMake) {
         int[] makeMutations = new int[fittestCount];
 
         if (netsToMake <= fittestCount) {

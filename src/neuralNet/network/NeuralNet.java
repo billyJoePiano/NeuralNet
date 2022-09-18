@@ -169,8 +169,8 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
         for (SignalProvider provider : this.providers) {
             provider.replaceConsumers(consumers);
-            if (provider instanceof HashCacher hashCacher) {
-                hashCacher.clearHashCache();
+            if (provider instanceof LoopingNeuron loopingNeuron) {
+                loopingNeuron.clearHashCache();
             }
         }
 
@@ -457,6 +457,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
         public CachingProvider clone() throws UnsupportedOperationException {
             throw new UnsupportedOperationException();
         }
+
+        public static final long HASH_HEADER = NeuralHash.HEADERS.get(SensorNode.class);
+
+        @Override
+        public long calcNeuralHash() {
+            return HASH_HEADER ^ Long.rotateLeft(this.getSensorId(), 29);
+        }
     }
 
     public abstract class Decision implements DecisionNode<N, C> {
@@ -612,34 +619,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
     public synchronized long getNeuralHash() {
         if (this.hashCache != null) return hashCache;
 
-        Set<HashCacher> hashCachers = new HashSet<>();
-
-        for (SignalProvider neuron : this.providers) {
-            if (neuron instanceof HashCacher hashCacher) {
-                hashCachers.add(hashCacher);
-            }
+        int i = 0;
+        long hash = 0;
+        for (DecisionNode<N, C> node : this.getDecisionNodes()) {
+            hash ^= Long.rotateRight(node.getNeuralHash(), i);
+            i += 19;
         }
-
-        hashCachers = Collections.unmodifiableSet(hashCachers);
-
-        try {
-            for (HashCacher hashCacher : hashCachers) {
-                hashCacher.notifyWhenCalculating(hashCachers);
-            }
-
-            int i = 0;
-            long hash = 0;
-            for (DecisionNode<N, C> node : this.getDecisionNodes()) {
-                hash ^= Long.rotateRight(node.getNeuralHash(), i);
-                i += 19;
-            }
-            return this.hashCache = hash;
-
-        } finally {
-            for (HashCacher hashCacher : hashCachers) {
-                hashCacher.clearCalculatingNotifications();
-            }
-        }
+        return this.hashCache = hash;
     }
 
     public String toString() {

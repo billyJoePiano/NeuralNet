@@ -1,15 +1,20 @@
 package neuralNet.evolve;
 
 import neuralNet.network.*;
+import neuralNet.neuron.*;
+import neuralNet.util.*;
 
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
-import java.util.stream.*;
 
-public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> implements Set<N> {
+import static neuralNet.neuron.NeuralHash.toHex;
+
+public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> implements Set<N>, Serializable {
+    public static final long serialVersionUID = 7073140645268169066L;
+
     public static final KeepLambda DEFAULT_KEEP_LAMBDA = DefaultKeepLambda.INSTANCE;
     public static final UpdateFittestLambda
             DISCARD_IMMEDIATELY = DefaultUpdateFittestLambdas.DISCARD_IMMEDIATELY,
@@ -19,35 +24,40 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             DEFAULT_UPDATE_FITTEST_LAMBDA = THIRD;
 
     private final TreeSet<LegacyRecord> legacies = new TreeSet<>();
+    private final TreeMap<Long, Set<N>> hashes = new TreeMap<>();
+    private TreeMap<String, Set<N>> specialNets = new TreeMap<>();
+
     public final KeepLambda<N> keep;
     public final UpdateFittestLambda<N> updateFittest;
 
     private transient HashMap<N, LegacyRecord> nets = new HashMap<>();;
     private transient TreeSet<F> fitnesses = new TreeSet<>();
     private transient NavigableSet<F> fitnessesView = Collections.unmodifiableNavigableSet(this.fitnesses);
+    private transient NavigableMap<Long, Set<N>> hashSetsView = new TreeMap<>();
+    private transient NavigableMap<Long, Set<N>> hashView = Collections.unmodifiableNavigableMap(this.hashSetsView);
+    private transient NavigableMap<String, Set<N>> specialNetsView = Collections.unmodifiableNavigableMap(this.specialNets);
 
-    private Object readResolve() throws ObjectStreamException {
+    protected Object readResolve() throws ObjectStreamException {
         this.nets = new HashMap<>();
+        this.fitnesses = new TreeSet<>();
         this.fitnessesView = Collections.unmodifiableNavigableSet(this.fitnesses);
+        this.hashSetsView = new TreeMap<>();
+        this.hashView = Collections.unmodifiableNavigableMap(this.hashSetsView);
+
+        if (this.specialNets == null) this.specialNets = new TreeMap<>();
+        this.specialNetsView = Collections.unmodifiableNavigableMap(this.specialNets);
 
         for (LegacyRecord legacy : this.legacies) {
             this.nets.put(legacy.net, legacy);
+        }
+
+        for (Map.Entry<Long, Set<N>> entry : this.hashes.entrySet()) {
+            long hash = entry.getKey();
+            Set<N> setView = Collections.unmodifiableSet(entry.getValue());
+            this.hashSetsView.put(hash, setView);
         }
         return this;
     }
-
-    /*
-    private NetTracker(NetTracker<N, F> deserializedFrom, Void v) {
-        this.legacies = deserializedFrom.legacies;
-        this.keep = deserializedFrom.keep;
-        this.updateFittest = deserializedFrom.updateFittest;
-        this.nets = new HashMap<>();
-
-        for (LegacyRecord legacy : this.legacies) {
-            this.nets.put(legacy.net, legacy);
-        }
-    }
-     */
 
     public NetTracker() {
         this(DEFAULT_KEEP_LAMBDA, DEFAULT_UPDATE_FITTEST_LAMBDA);
@@ -67,11 +77,69 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
         this.updateFittest = updateFittestLambda;
     }
 
-    public interface KeepLambda<N extends NeuralNet<?, N, ?>> {
+    public NetTracker(NetTracker<N, F> cloneUsingDefaultLambdas) {
+        this(cloneUsingDefaultLambdas, DEFAULT_KEEP_LAMBDA, DEFAULT_UPDATE_FITTEST_LAMBDA);
+    }
+
+    public NetTracker(NetTracker<N, F> cloneUsingDefaultUpdateFittestLambda, KeepLambda<N> keepLambda) {
+        this(cloneUsingDefaultUpdateFittestLambda, keepLambda, DEFAULT_UPDATE_FITTEST_LAMBDA);
+    }
+
+    public NetTracker(NetTracker<N, F> cloneUsingDefaultKeepLambda, UpdateFittestLambda<N> updateFittest) {
+        this(cloneUsingDefaultKeepLambda, DEFAULT_KEEP_LAMBDA, updateFittest);
+    }
+
+    public NetTracker(NetTracker<N, F> clone, KeepLambda<N> keepLambda, UpdateFittestLambda<N> updateFittestLambda) {
+        this(keepLambda, updateFittestLambda);
+        this.copyFrom(clone);
+
+    }
+
+    public void copyFrom(NetTracker<N, F> cloneFrom) {
+        for (LegacyRecord cloneLegacy : cloneFrom.legacies) {
+            LegacyRecord myLegacy = new LegacyRecord(cloneLegacy);
+            this.legacies.add(myLegacy);
+            this.nets.put(myLegacy.net, myLegacy);
+        }
+
+        for (Map.Entry<Long, Set<N>> entry : cloneFrom.hashes.entrySet()) {
+            long hash = entry.getKey();
+            Set<N> nets = entry.getValue();
+
+            for (N net : nets) {
+                long netHash = net.getNeuralHash();
+                if (netHash != hash) {
+                    System.err.println("Old hash no longer matches current algorithm: "
+                            + hash + "\n" + net);
+                }
+                this.addToHashes(net);
+            }
+        }
+        if (cloneFrom.fitnesses != null) {
+            this.fitnesses.addAll(cloneFrom.fitnesses);
+        }
+
+        if (cloneFrom.specialNets == null) return;
+
+        Var.Bool doAddAll = new Var.Bool();
+        for (Map.Entry<String, Set<N>> entry : cloneFrom.specialNets.entrySet()) {
+            String name = entry.getKey();
+            Set<N> set = entry.getValue();
+            doAddAll.value = true;
+            if (name == null || set == null) throw new NullPointerException();
+            Set<N> mySet = this.specialNets.computeIfAbsent(name, n -> {
+                doAddAll.value = false;
+                return new LinkedHashSet<>(set);
+            });
+            if (doAddAll.value) mySet.addAll(set);
+        }
+    }
+
+    public interface KeepLambda<N extends NeuralNet<?, N, ?>> extends Serializable {
         public boolean keep(long currentGen, long genRating, N net);
     }
 
-    public interface UpdateFittestLambda<N extends NeuralNet<?, N , ?>> {
+    public interface UpdateFittestLambda<N extends NeuralNet<?, N , ?>> extends Serializable {
         public long updateGenRating(long currentGen, long genRating, N net);
     }
 
@@ -104,37 +172,57 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
     }
 
 
-    public class LegacyRecord implements Comparable<LegacyRecord> {
+    public class LegacyRecord implements Comparable<LegacyRecord>, Serializable {
         public final N net;
-        private long genRating = NeuralNet.getCurrentGeneration();
-        private transient Fitness<?, ?> lastFitness;
+        private long genRating;
+        private transient F fitness;
 
-        private LegacyRecord(N net, Fitness<?, ?> lastFitness) {
+        private LegacyRecord(NetTracker<N, F>.LegacyRecord clonedFrom) {
+            this.net = clonedFrom.net;
+            this.genRating = clonedFrom.genRating;
+            this.fitness = clonedFrom.fitness;
+        }
+
+        private LegacyRecord(N net, F fitness) {
             this.net = net;
-            this.lastFitness = lastFitness;
+            this.fitness = fitness;
+            this.genRating = NeuralNet.getCurrentGeneration();
+            NetTracker.this.addToHashes(net);
         }
 
 
         @Override
         public int compareTo(LegacyRecord other) {
-            if (this.genRating != other.genRating) return Long.compare(this.genRating, other.genRating);
             if (this == other) return 0;
+            if (this.net == other.net) {
+                System.err.println("NetTracker: Unexpected duplicate LegacyRecords with the same net:\n" + this.net);
 
-            if (this.lastFitness == null) return 1;
-            if (other.lastFitness == null) return -1;
+                if (this.genRating != other.genRating) {
+                    this.genRating = Math.round(((double)this.genRating + (double)other.genRating) / 2);
+                }
+
+                if (this.fitness == null) this.fitness = other.fitness;
+                else if (other.fitness == null) other.fitness = this.fitness;
+
+                return 0;
+            }
+
+            if (this.genRating != other.genRating) return Long.compare(this.genRating, other.genRating);
+
+            if (this.fitness == null) return 1;
+            if (other.fitness == null) return -1;
 
             int mine = this.hashCode();
             int theirs = other.hashCode();
             if (mine != theirs) return Integer.compare(this.hashCode(), other.hashCode());
 
-            if (this.net == other.net) throw new IllegalStateException();
             mine = this.net.hashCode();
             theirs = other.net.hashCode();
             if (mine != theirs) return Integer.compare(this.hashCode(), other.hashCode());
 
-            if (this.lastFitness == other.lastFitness) throw new IllegalStateException();
-            mine = this.lastFitness.hashCode();
-            theirs = other.lastFitness.hashCode();
+            if (this.fitness == other.fitness) throw new IllegalStateException();
+            mine = this.fitness.hashCode();
+            theirs = other.fitness.hashCode();
             if (mine != theirs) return Integer.compare(this.hashCode(), other.hashCode());
 
             ThreadLocalRandom rand = ThreadLocalRandom.current();
@@ -146,13 +234,16 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
         return this.fitnessesView;
     }
 
+    public NavigableMap<Long, Set<N>> getHashes() { return this.hashView; }
+
+
     public boolean add(N net) {
         LegacyRecord legacy = this.nets.get(net);
         if (legacy != null) return false;
 
         legacy = new LegacyRecord(net, null);
         this.nets.put(net, legacy);
-        legacies.add(legacy);
+        this.legacies.add(legacy);
         return true;
     }
 
@@ -176,10 +267,10 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
         return legacy.genRating;
     }
 
-    public Fitness getFitness(N net) {
+    public F getFitness(N net) {
         LegacyRecord legacy = this.nets.get(net);
         if (legacy == null) return null;
-        return legacy.lastFitness;
+        return legacy.fitness;
     }
 
     public boolean setGenRatingAndFitness(N net, long genRating, F fitness) {
@@ -205,10 +296,10 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             legacies.add(legacy);
         }
 
-        if (legacy.lastFitness != fitness) {
+        if (legacy.fitness != fitness) {
             changed = true;
-            this.fitnesses.remove(legacy.lastFitness);
-            legacy.lastFitness = fitness;
+            this.fitnesses.remove(legacy.fitness);
+            legacy.fitness = fitness;
             this.fitnesses.add(fitness);
         }
 
@@ -221,13 +312,13 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             legacy = new LegacyRecord(net, null);
             legacy.genRating = genRating;
             this.nets.put(net, legacy);
-            legacies.add(legacy);
+            this.legacies.add(legacy);
             return true;
 
         } else if (legacy.genRating != genRating) {
-            legacies.remove(legacy);
+            this.legacies.remove(legacy);
             legacy.genRating = genRating;
-            legacies.add(legacy);
+            this.legacies.add(legacy);
             return true;
 
         } else return false;
@@ -243,9 +334,9 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             this.fitnesses.add(fitness);
             return true;
 
-        } else if (fitness != legacy.lastFitness) {
-            this.fitnesses.remove(legacy.lastFitness);
-            legacy.lastFitness = fitness;
+        } else if (fitness != legacy.fitness) {
+            this.fitnesses.remove(legacy.fitness);
+            legacy.fitness = fitness;
             this.fitnesses.add(fitness);
             return true;
         }
@@ -312,10 +403,10 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
     public Set<N> addFittest(SortedSet<? extends F> fitnesses, int keepTop, long currentGen) {
         for (F fittness : fitnesses) {
             LegacyRecord legacy = this.nets.get(fittness.getDecisionProvider());
-            if (legacy == null || legacy.lastFitness == fittness) continue;
-            if (legacy.lastFitness != null) this.fitnesses.remove(legacy.lastFitness);
+            if (legacy == null || legacy.fitness == fittness) continue;
+            if (legacy.fitness != null) this.fitnesses.remove(legacy.fitness);
             this.fitnesses.add(fittness);
-            legacy.lastFitness = fittness;
+            legacy.fitness = fittness;
         }
 
 
@@ -388,6 +479,7 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
     }
 
     public void cullOld(long currentGen) {
+        Set<Long> extinctLineages = new TreeSet<>();
         for (Iterator<LegacyRecord> iterator = legacies.iterator();
              iterator.hasNext();) {
 
@@ -395,69 +487,194 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             if (this.keep.keep(currentGen, legacy.genRating, legacy.net)) continue;
             iterator.remove();
             this.nets.remove(legacy.net);
-            if(legacy.lastFitness != null) this.fitnesses.remove(legacy.lastFitness);
+            if(legacy.fitness != null) this.fitnesses.remove(legacy.fitness);
+            extinctLineages.add(legacy.net.getNeuralHash());
+            for (long ancestor : legacy.net.getLineage()) {
+                extinctLineages.add(ancestor);
+            }
+        }
+
+        for (N net : this.nets.keySet()) {
+            extinctLineages.remove(net.getNeuralHash());
+            for (long ancestor : net.getLineage()) {
+                extinctLineages.remove(ancestor);
+            }
+        }
+
+        for (long extinct : extinctLineages) {
+            Set<N> nets = this.hashes.get(extinct);
+            if (nets == null) {
+                System.err.println("Unexpected missing nets set when removing extinct lineage, for hash " + toHex(extinct));
+                continue;
+            }
+            if (nets.size() == 1) {
+                this.hashes.remove(extinct);
+                this.hashSetsView.remove(extinct);
+                continue;
+            }
+
+            boolean remove = true;
+
+            for (N net1 : nets) {
+                long[] lineage1 = net1.getLineage();
+                boolean reachedNet1 = false;
+                for (N net2 : nets) {
+                    if (!reachedNet1) {
+                        reachedNet1 = net1 == net2;
+                        continue;
+                    }
+                    if (NeuralHash.checkForHashCollision(extinct, net1, net2)) {
+                        remove = false;
+                        break;
+                    }
+                }
+                if (!remove) break;
+            }
+
+            if (remove) {
+                this.hashes.remove(extinct);
+                this.hashSetsView.remove(extinct);
+            }
         }
     }
 
-
-    @Override
-    public int size() {
-        return this.legacies.size();
+    public Set<N> getHash(long forHash) {
+        return this.hashSetsView.get(forHash);
     }
 
-    @Override
-    public boolean isEmpty() {
-        return this.legacies.isEmpty();
+    public boolean addToHashes(N net) {
+        return NetTracker.this.hashes.computeIfAbsent(net.getNeuralHash(), hash -> {
+            Set<N> set = new LinkedHashSet<>();
+            Set<N> setView = Collections.unmodifiableSet(set);
+            NetTracker.this.hashSetsView.put(hash, setView);
+            return set;
+
+        }).add(net);
     }
 
-    @Override
-    public boolean contains(Object o) {
-        return this.nets.containsKey(o);
+    public Map<String, Set<N>> getSpecialNets() {
+        return this.specialNetsView;
     }
 
-    @Override
-    public Iterator<N> iterator() {
-        return new NetsIterator();
+    /**
+     * Returns the mutable set of nets with the given name
+     *
+     * @param name
+     * @return
+     */
+    public Set<N> getSpecialNets(String name) {
+        if (name == null) throw new NullPointerException();
+        return this.specialNets.get(name);
     }
 
-    @Override
-    public void forEach(Consumer<? super N> action) {
-        this.legacies.forEach(l -> action.accept(l.net));
-    }
+    public boolean addToSpecialNets(String name, N ... nets) {
+        if (name == null || nets == null) throw new NullPointerException();
+        for (N net : nets) if (net == null) throw new NullPointerException();
 
-    @Override
-    public Object[] toArray() {
-        Object[] arr = new Object[this.legacies.size()];
-        int i = 0;
-        for (LegacyRecord legacy : this.legacies) {
-            arr[i++] = legacy.net;
+        Var.Bool changed = new Var.Bool();
+        Set<N> set = this.specialNets.computeIfAbsent(name, n -> {
+            changed.value = true;
+            return new LinkedHashSet<>();
+        });
+
+        for (N net : nets) {
+            if (set.add(net)) changed.value = true;
         }
-        return arr;
+        return changed.value;
     }
 
-    @Override
-    public <T> T[] toArray(T[] ts) {
-        if (ts.length < this.legacies.size()) {
-            ts = (T[])Array.newInstance(ts.getClass().getComponentType(), this.legacies.size());
-        }
+    public boolean addToSpecialNets(String name, Collection<? extends N> nets) {
+        if (name == null || nets == null) throw new NullPointerException();
+        for (N net : nets) if (net == null) throw new NullPointerException();
 
-        int i = 0;
-        for (LegacyRecord legacy : this.legacies) {
-            ts[i++] = (T)legacy.net;
-        }
+        Var.Bool changed = new Var.Bool();
+        Set<N> set = this.specialNets.computeIfAbsent(name, n -> {
+            changed.value = true;
+            return new LinkedHashSet<>();
+        });
 
-        for (; i < ts.length; i++) {
-            ts[i] = null;
+        for (N net : nets) {
+            if (set.add(net)) changed.value = true;
         }
-
-        return ts;
+        return changed.value;
     }
 
-    @Override
-    public <T> T[] toArray(IntFunction<T[]> generator) {
-        return this.toArray(generator.apply(this.legacies.size()));
+    public Set<N> removeSpecialNets(String name) {
+        if (name == null) throw new NullPointerException();
+        return this.specialNets.remove(name);
     }
 
+    public boolean removeFromSpecialNets(String name, N ... nets) {
+        if (name == null || nets == null) throw new NullPointerException();
+        for (N net : nets) if (net == null) throw new NullPointerException();
+
+        Set<N> set = this.specialNets.get(name);
+        if (set == null) return false;
+
+        boolean changed = false;
+        for (N net : nets) {
+            if (set.remove(net)) changed = true;
+        }
+        return changed;
+    }
+
+    public boolean removeFromSpecialNets(String name, Collection<? extends N> nets) {
+        if (name == null || nets == null) throw new NullPointerException();
+        for (N net : nets) if (net == null) throw new NullPointerException();
+
+        Set<N> set = this.specialNets.get(name);
+        if (set == null) return false;
+
+        boolean changed = false;
+        for (N net : nets) {
+            if (set.remove(net)) changed = true;
+        }
+        return changed;
+    }
+
+    public boolean specialNetsContains(String name, N net) {
+        if (name == null || net == null) throw new NullPointerException();
+        Set<N> set = this.specialNets.get(name);
+        return set != null && set.contains(net);
+    }
+
+    public boolean removeFromAll(N net) {
+        LegacyRecord legacy = this.nets.get(net);
+        if (legacy != null) {
+            this.legacies.remove(legacy);
+            this.nets.remove(net);
+        }
+
+        Var.Bool found = new Var.Bool(false),
+                removed = new Var.Bool(false);
+
+        this.hashes.computeIfPresent(net.getNeuralHash(), (hash, nets) -> {
+            found.value = true;
+            removed.value = nets.remove(net);
+            if (nets.size() == 0) {
+                this.hashSetsView.remove(hash);
+                return null;
+            }
+            else return nets;
+        });
+        if (!found.value) {
+            System.err.println("netTracker.removeFromAll(net) could not find this net ");
+        }
+
+        boolean inSpecialNets = false;
+        for (Set<N> nets : this.specialNets.values()) {
+            if (nets.remove(net)) inSpecialNets = true;
+        }
+
+        return legacy != null || removed.value || inSpecialNets;
+    }
+
+    /**
+     * Only removes from the set of active nets.  Does NOT remove from the hashes map.  To remove
+     * from hashes map use removeFromAll(net)
+     * @param o
+     * @return
+     */
     @Override
     public boolean remove(Object o) {
         LegacyRecord legacy = this.nets.get(o);
@@ -536,6 +753,67 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
         }
     }
 
+    @Override
+    public int size() {
+        return this.legacies.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return this.legacies.isEmpty();
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return this.nets.containsKey(o);
+    }
+
+    @Override
+    public Iterator<N> iterator() {
+        return new NetsIterator();
+    }
+
+    @Override
+    public void forEach(Consumer<? super N> action) {
+        this.legacies.forEach(l -> action.accept(l.net));
+    }
+
+    @Override
+    public Object[] toArray() {
+        Object[] arr = new Object[this.legacies.size()];
+        int i = 0;
+        for (LegacyRecord legacy : this.legacies) {
+            arr[i++] = legacy.net;
+        }
+        return arr;
+    }
+
+    @Override
+    public <T> T[] toArray(T[] ts) {
+        if (ts.length < this.legacies.size()) {
+            ts = (T[])Array.newInstance(ts.getClass().getComponentType(), this.legacies.size());
+        }
+
+        int i = 0;
+        for (LegacyRecord legacy : this.legacies) {
+            ts[i++] = (T)legacy.net;
+        }
+
+        for (; i < ts.length; i++) {
+            ts[i] = null;
+        }
+
+        return ts;
+    }
+
+    @Override
+    public <T> T[] toArray(IntFunction<T[]> generator) {
+        return this.toArray(generator.apply(this.legacies.size()));
+    }
+
+    /*
+    // below is for debugging
+
     List<LegacyRecord> findNetsLegacyDiscrepancy() {
         return this.nets.values().stream().filter(l -> !this.legacies.contains(l)).collect(Collectors.toList());
     }
@@ -562,4 +840,6 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
     List<LegacyRecord> findLegacyNetsDiscrepancy() {
         return this.legacies.stream().filter(l -> !this.nets.values().contains(l)).toList();
     }
+    */
+
 }

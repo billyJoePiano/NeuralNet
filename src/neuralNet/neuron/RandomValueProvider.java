@@ -1,6 +1,4 @@
-package neuralNet.function;
-
-import neuralNet.neuron.*;
+package neuralNet.neuron;
 
 import java.util.concurrent.*;
 
@@ -28,6 +26,16 @@ public class RandomValueProvider extends CachingProvider {
 
     @Override
     public long getNeuralHash() {
+        return NEURAL_HASH;
+    }
+
+    @Override
+    public long calcNeuralHash() {
+        return NEURAL_HASH;
+    }
+
+    @Override
+    public long getNeuralHashFor(LoopingNeuron looper) {
         return NEURAL_HASH;
     }
 }

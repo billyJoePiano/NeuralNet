@@ -8,6 +8,9 @@ public interface SignalProvider extends Serializable {
 
     public Set<SignalConsumer> getConsumers();
     public long getNeuralHash();
+    public long getNeuralHashFor(LoopingNeuron looper);
+    public boolean checkForLoops(LoopingNeuron looper);
+    public void clearHashCache();
 
     /**
      * When implementing, return true if the consumer was not already in the set of consumers, false if it was.

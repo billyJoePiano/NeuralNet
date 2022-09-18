@@ -12,6 +12,7 @@ public abstract class CachingProvider implements SignalProvider {
     private transient Set<SignalConsumer> consumersView = ((SerializableWeakHashSet<SignalConsumer>) this.consumers).getView();;
 
     private transient Short output;
+    protected transient Long hashCache;
 
     protected Object readResolve() throws ObjectStreamException {
         this.consumersView = ((SerializableWeakHashSet<SignalConsumer>) this.consumers).getView();
@@ -59,6 +60,29 @@ public abstract class CachingProvider implements SignalProvider {
     @Override
     public Set<SignalConsumer> getConsumers() {
         return this.consumersView;
+    }
+
+    protected abstract long calcNeuralHash();
+
+    public boolean checkForLoops(LoopingNeuron looper) {
+        return false;
+    }
+
+    @Override
+    public long getNeuralHash() {
+        if (this.hashCache != null) return this.hashCache;
+        else return this.hashCache = this.calcNeuralHash();
+    }
+
+    // IMPORTANT TO OVERRIDE IN CachingNeuron
+    @Override
+    public long getNeuralHashFor(LoopingNeuron looper) {
+        return this.getNeuralHash();
+    }
+
+    @Override
+    public void clearHashCache() {
+        this.hashCache = null;
     }
 
     @Override

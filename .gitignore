@@ -10,3 +10,4 @@
 /target/*
 
 /Test* 202*-*-* *_*_*.txt
+*.nnt

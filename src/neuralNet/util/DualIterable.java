@@ -1,5 +1,7 @@
 package neuralNet.util;
 
+import java.util.*;
+
 public class DualIterable<T> implements Iterable<DualIterable.Pair<T>> {
     public final Iterable<T> iterable1;
     public final Iterable<T> iterable2;
@@ -10,11 +12,11 @@ public class DualIterable<T> implements Iterable<DualIterable.Pair<T>> {
     }
 
     @Override
-    public Iterator iterator() {
-        return new Iterator();
+    public DualIterator iterator() {
+        return new DualIterator();
     }
 
-    public class Iterator implements java.util.Iterator<Pair<T>> {
+    public class DualIterator implements Iterator<Pair<T>> {
         public final java.util.Iterator<T> iterator1 = DualIterable.this.iterable1.iterator();
         public final java.util.Iterator<T> iterator2 = DualIterable.this.iterable2.iterator();
 
@@ -26,10 +28,10 @@ public class DualIterable<T> implements Iterable<DualIterable.Pair<T>> {
         }
 
         @Override
-        public Pair next() {
+        public Pair<T> next() {
             T val1 = iterator1.hasNext() ? iterator1.next() : null;
             T val2 = iterator2.hasNext() ? iterator2.next() : null;
-            return new Pair(this.index++, val1, val2);
+            return new Pair<>(this.index++, val1, val2);
         }
     }
 

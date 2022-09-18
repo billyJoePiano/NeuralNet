@@ -7,7 +7,7 @@ import java.util.*;
  * @param <M>
  */
 public abstract class MemoryNeuron<M extends MemoryNeuron<M>> extends CachingNeuron
-        implements SignalProvider.Tweakable<M>, HashCacher {
+        implements SignalProvider.Tweakable<M>, LoopingNeuron {
 
     public static final long serialVersionUID = -2703258302368792678L;
 
@@ -29,148 +29,84 @@ public abstract class MemoryNeuron<M extends MemoryNeuron<M>> extends CachingNeu
         super(inputs);
     }
 
-
-    protected abstract long calcHash();
-
     private transient Long hashCache;
-    private transient Map<HashCacher, Long> hashesForOriginalInvoker;
+    private transient Map<LoopingNeuron, Long> hashesForOriginalInvoker;
 
-    private transient boolean returnZeroHash = false;
-    private transient Set<HashCacher> notifyWhenCalculating;
-    private transient Set<HashCacher> activelyCalculating;
-    private transient Set<HashCacher> downstream;
-    private transient HashCacher originalInvoker;
-    private transient LinkedHashSet<HashCacher> circularRefs;
+    private transient Boolean loopsBack;
+    private transient Set<LoopingNeuron> gettingHashFor;
+    private transient Set<LoopingNeuron> checkingForLoops;
 
 
-    @Override
-    public synchronized long getNeuralHash() {
-        if (this.returnZeroHash) {
-            if (this.notifyWhenCalculating != null) {
-                if (this.activelyCalculating == null || this.downstream == null) throw new IllegalStateException();
-                this.downstream.forEach(hc -> hc.notifyOfCircularReference(this));
-            }
-
-            return 0;
+    public synchronized long getNeuralHashFor(LoopingNeuron looper) {
+        if (looper == this) return 0;
+        else if (looper == null && this.loopsBack()) {
+            if (this.hashCache != null) return this.hashCache;
+            else return this.hashCache = this.calcNeuralHashFor(this);
         }
 
-        if (this.hashCache != null
-                && (this.activelyCalculating == null || this.originalInvoker == null))
-            return this.hashCache;
+        if (this.gettingHashFor == null) {
+            if (this.loopsBack()) this.gettingHashFor = new HashSet<>();
+            else return super.getNeuralHashFor(looper);
 
-        if (this.originalInvoker != null && this.hashesForOriginalInvoker != null) {
-            if (this.hashesForOriginalInvoker.containsKey(this.originalInvoker)) {
-                return this.hashesForOriginalInvoker.get(this.originalInvoker);
-            }
-        }
+        } else if (this.gettingHashFor.contains(looper)) return 0;
 
         try {
-            if (this.notifyWhenCalculating != null) {
-                this.notifyWhenCalculating.forEach(hc -> hc.notifyCalculating(this));
-                this.downstream = new LinkedHashSet<>();
-            }
+            this.gettingHashFor.add(looper);
+            return super.getNeuralHashFor(looper);
 
-            this.returnZeroHash = true;
-            this.circularRefs = null;
-
-            long hash = this.calcHash();
-
-            if (this.notifyWhenCalculating == null) return hash;
-            if (this.originalInvoker == null) throw new IllegalStateException();
-
-            if (this.circularRefs == null || this.originalInvoker == this) return this.hashCache = hash;
-
-            if (this.circularRefs.size() != 1) return hash;
-            // if there was more than one neuron finding circular references,
-            // the web is too complex to untangle... :-(  We can't cache the hash without risking
-            // undefined/faulty behavior
-            // (e.g. due to order of upstream invocations for inputs, if inputOrderMatters == false)
-
-            for (HashCacher hc : this.circularRefs) {
-                if (hc == this) return this.hashCache = hash;
-
-                if (this.hashesForOriginalInvoker == null) this.hashesForOriginalInvoker = new HashMap<>();
-                this.hashesForOriginalInvoker.put(hc, hash);
-                break;
-                //if hc != originalInvoker, it means that the originalInvoker was just incidental
-                // to this the circular reference, and is somewhere upstream of it.  Cache the hash
-                // for the neuron actually responsible for the circular reference
-            }
-
-
-            return hash;
+        } catch(StackOverflowError e) {
+            e.printStackTrace(System.err);
+            return 0;
 
         } finally {
-            this.returnZeroHash = false;
-            this.downstream = null;
-            this.circularRefs = null;
-
-            if (this.notifyWhenCalculating != null) {
-                this.notifyWhenCalculating.forEach(hc -> hc.notifyDoneCalculating(this));
-            }
+            this.gettingHashFor.remove(looper);
+            if (this.gettingHashFor.size() == 0) this.gettingHashFor = null;
         }
     }
 
     @Override
     public void clearHashCache() {
-        this.hashCache = null;
-        this.clearCalculatingNotifications();
+        this.loopsBack = null;
+        super.clearHashCache();
     }
 
     @Override
-    public void notifyWhenCalculating(Set<HashCacher> otherCachers) {
-        this.clearHashCache();
-        this.notifyWhenCalculating = otherCachers;
-        this.activelyCalculating = new LinkedHashSet<>();
+    public synchronized boolean loopsBack() {
+        if (this.loopsBack != null) return this.loopsBack;
+        return this.loopsBack = super.checkForLoops(this);
     }
 
     @Override
-    public void notifyCalculating(HashCacher calculator) {
-        if (this.activelyCalculating == null) throw new IllegalStateException();
-        if (this.activelyCalculating.size() == 0) {
-            if (this.originalInvoker != null) throw new IllegalStateException();
-            this.originalInvoker = calculator;
+    public synchronized boolean checkForLoops(LoopingNeuron looper) {
+        if (looper == this) return true;
+        if (this.noLoops != null && this.noLoops.contains(looper)) return false;
+        if (this.loops != null && this.loops.contains(looper)) return true;
+
+
+        if (this.checkingForLoops != null) {
+            if (this.checkingForLoops.contains(looper)) return false;
+
+        } else this.checkingForLoops = new HashSet<>();
+
+        try {
+            this.checkingForLoops.add(looper);
+
+            for (SignalProvider provider : this.inputs) {
+                if (provider.checkForLoops(looper)) {
+                    if (this.loops == null) this.loops = new HashSet<>();
+                    this.loops.add(looper);
+                    return true;
+                }
+            }
+
+            if (this.noLoops == null) this.noLoops = new HashSet<>();
+            this.noLoops.add(looper);
+            return false;
+
+
+        } finally {
+            this.checkingForLoops.remove(looper);
+            if (this.checkingForLoops.size() == 0) this.checkingForLoops = null;
         }
-        this.activelyCalculating.add(calculator);
-
-        if (this.downstream != null) {
-            this.downstream.add(calculator);
-        }
-    }
-
-    @Override
-    public void notifyDoneCalculating(HashCacher calculator) {
-        this.activelyCalculating.remove(calculator);
-        if (this.originalInvoker == null) {
-            throw new IllegalStateException();
-        }
-
-        boolean sizeZero = this.activelyCalculating.size() == 0;
-        boolean isOrig = calculator == this.originalInvoker;
-
-        if (sizeZero != isOrig) { //!!!! should never happen
-            for (HashCacher hc : this.notifyWhenCalculating) hc.clearHashCache();
-            this.clearHashCache(); //just in case this wasn't in the set...
-            throw new IllegalStateException();
-        }
-
-        if (sizeZero) this.originalInvoker = null;
-    }
-
-    @Override
-    public void notifyOfCircularReference(HashCacher calculator) {
-        if (this.circularRefs == null) this.circularRefs = new LinkedHashSet<>();
-        this.circularRefs.add(calculator);
-    }
-
-    @Override
-    public void clearCalculatingNotifications() {
-        this.hashesForOriginalInvoker = null;
-        this.returnZeroHash = false;
-        this.notifyWhenCalculating = null;
-        this.activelyCalculating = null;
-        this.downstream = null;
-        this.circularRefs = null;
-        this.originalInvoker = null;
     }
 }

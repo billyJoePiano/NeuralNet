@@ -79,17 +79,17 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
     }
 
     @Override
-    public long getNeuralHash() {
+    public long calcNeuralHashFor(LoopingNeuron looper) {
         long hash = this.outputFunction.getNeuralHash() ^ Long.rotateLeft((long)this.inputs.size(), 27);
         if (this.outputFunction.inputOrderMatters()) {
             int i = 0;
             for (SignalProvider provider: this.inputs) {
-                hash ^= Long.rotateRight(provider.getNeuralHash(), i += 17);
+                hash ^= Long.rotateRight(provider.getNeuralHashFor(looper), i += 17);
             }
 
         } else {
             for (SignalProvider provider : this.inputs) {
-                hash ^= Long.rotateRight(provider.getNeuralHash(), 17);
+                hash ^= Long.rotateRight(provider.getNeuralHashFor(looper), 17);
             }
         }
         return hash;

@@ -8,6 +8,9 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
 
     protected final ArrayList<SignalProvider> inputs;
     private transient List<SignalProvider> inputsView;
+    private transient Map<LoopingNeuron, Long> hashesFor;
+    protected transient Set<LoopingNeuron> noLoops;
+    protected transient Set<LoopingNeuron> loops;
 
     @Override
     protected Object readResolve() throws ObjectStreamException {
@@ -55,6 +58,55 @@ public abstract class CachingNeuron extends CachingProvider implements Neuron {
     }
 
     protected abstract short calcOutput(List<SignalProvider> inputs);
+
+    protected long calcNeuralHash() {
+        return this.calcNeuralHashFor(null);
+    }
+
+    protected abstract long calcNeuralHashFor(LoopingNeuron looper);
+
+    @Override
+    public boolean checkForLoops(LoopingNeuron looper) {
+        if (this.noLoops != null && this.noLoops.contains(looper)) return false;
+        if (this.loops != null && this.loops.contains(looper)) return true;
+
+        for (SignalProvider provider : this.inputs) {
+            if (provider.checkForLoops(looper)) {
+                if (this.loops == null) this.loops = new HashSet<>();
+                this.loops.add(looper);
+                return true;
+            }
+        }
+
+        if (this.noLoops == null) this.noLoops = new HashSet<>();
+        this.noLoops.add(looper);
+        return false;
+    }
+
+    @Override
+    public void clearHashCache() {
+        this.hashCache = null;
+        this.noLoops = null;
+        this.loops = null;
+        //this.checkingForLoops = null;
+    }
+
+
+    @Override
+    public long getNeuralHashFor(LoopingNeuron looper) {
+        if (looper == null) {
+            if (this.hashCache != null) return this.hashCache;
+            else return this.hashCache = calcNeuralHashFor(null);
+        }
+        if (this.hashesFor == null) this.hashesFor = new HashMap<>();
+        else {
+            Long hash = this.hashesFor.get(looper);
+            if (hash != null) return hash;
+        }
+        long hash = this.calcNeuralHashFor(looper);
+        this.hashesFor.put(looper, hash);
+        return hash;
+    }
 
     @Override
     public abstract CachingNeuron clone();

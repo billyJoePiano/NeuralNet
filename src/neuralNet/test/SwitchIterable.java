@@ -62,6 +62,9 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
         public CachingProvider clone() {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        protected long calcNeuralHash() { return 0; }
     }
 
 
@@ -150,6 +153,19 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
     public long getNeuralHash() {
         return 0;
     }
+
+    @Override
+    public long getNeuralHashFor(LoopingNeuron looper) {
+        return 0;
+    }
+
+    @Override
+    public boolean checkForLoops(LoopingNeuron looper) {
+        return false;
+    }
+
+    @Override
+    public void clearHashCache() { }
 
     @Override
     public boolean addConsumer(SignalConsumer consumer) {
