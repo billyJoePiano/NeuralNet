@@ -489,14 +489,14 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             this.nets.remove(legacy.net);
             if(legacy.fitness != null) this.fitnesses.remove(legacy.fitness);
             extinctLineages.add(legacy.net.getNeuralHash());
-            for (long ancestor : legacy.net.getLineage()) {
+            for (long ancestor : legacy.net.lineageLegacy) {
                 extinctLineages.add(ancestor);
             }
         }
 
         for (N net : this.nets.keySet()) {
             extinctLineages.remove(net.getNeuralHash());
-            for (long ancestor : net.getLineage()) {
+            for (long ancestor : net.lineageLegacy) {
                 extinctLineages.remove(ancestor);
             }
         }
@@ -516,7 +516,7 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             boolean remove = true;
 
             for (N net1 : nets) {
-                long[] lineage1 = net1.getLineage();
+                long[] lineage1 = net1.lineageLegacy;
                 boolean reachedNet1 = false;
                 for (N net2 : nets) {
                     if (!reachedNet1) {
@@ -809,6 +809,11 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
     @Override
     public <T> T[] toArray(IntFunction<T[]> generator) {
         return this.toArray(generator.apply(this.legacies.size()));
+    }
+
+    @Override
+    public String toString() {
+        return this.legacies.toString();
     }
 
     /*

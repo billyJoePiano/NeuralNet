@@ -39,7 +39,9 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
     }
 
     public List<N> mutate(int count) {
-        if (count < 1) throw new IllegalArgumentException();
+        if (count < 1) {
+            throw new IllegalArgumentException();
+        }
 
         this.complexNeurons = new LinkedList<>();
         for (SignalProvider neuron : this.net.getProviders()) {

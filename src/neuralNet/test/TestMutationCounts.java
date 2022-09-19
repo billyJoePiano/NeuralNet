@@ -14,7 +14,7 @@ public class TestMutationCounts {
             System.out.println("NETS_PER_GENERATION == " + nets);
             for (int i = 1; i < nets / 2 + 3; i++) {
                 long start = System.nanoTime();
-                int[] counts = MutationCounts.calc(i, nets - 1);
+                int[] counts = MutatorFactory.calcCounts(i, nets - 1);
                 long end = System.nanoTime();
                 System.out.println(i + " " + Util.toString(counts) + "\t" + (end - start) / MILLION);
             }
@@ -23,7 +23,7 @@ public class TestMutationCounts {
             System.out.println("\n\nNETS_PER_GENERATION == " + nets);
             for (int i = 1; i < nets / 2 + 3; i++) {
                 long start = System.nanoTime();
-                int[] counts = MutationCounts.calc(i, nets - 1);
+                int[] counts = MutatorFactory.calcCounts(i, nets - 1);
                 long end = System.nanoTime();
                 System.out.println(i + " " + Util.toString(counts) + "\t" + (end - start) / MILLION);
             }

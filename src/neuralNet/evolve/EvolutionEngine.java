@@ -55,7 +55,7 @@ public class EvolutionEngine {
     private final GenerationHeaderPrintStream System_out, errGen;
     private final TeePrintStream System_err, System_all;
 
-    EvolutionEngine(MutatorFactory<BoardNet> mutatorFactory) {
+    public EvolutionEngine(MutatorFactory<BoardNet> mutatorFactory) {
         this.mutatorFactory = mutatorFactory;
         this.filename = mutatorFactory.getClass().getSimpleName() + " "
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH_mm_ss"));
@@ -84,7 +84,7 @@ public class EvolutionEngine {
 
     private final Thread SHUTDOWN_HOOK = new Thread(this::shutdownHook);
 
-    private boolean loadSaved(String filename) {
+    public void loadSaved(String filename) throws IOException, ClassNotFoundException {
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
             Object nets = in.readObject();
             if (nets instanceof NetTracker t) {
@@ -134,25 +134,9 @@ public class EvolutionEngine {
 
             } else throw new UnsupportedOperationException("Unrecognized deserialized format : " + nets.getClass());
 
-        } catch (Exception e) {
-            e.printStackTrace(System_err);
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                while (true) {
-                    System_err.println("Error loading save file " + filename + "\n continue anyways? Enter 'y' or 'n'");
-                    String output = reader.readLine().toLowerCase();
-                    if ("y".equals(output)) return true;
-                    else if ("n".equals(output)) return false;
-                    System_err.println("Invalid response");
-                }
-
-            } catch (Exception e2) {
-                throw new RuntimeException(e2);
-            }
         }
 
         System_out.println("Successfully loaded saved file '" + filename + "'");
-        return true;
     }
 
     public void run() throws FileNotFoundException {
@@ -170,7 +154,7 @@ public class EvolutionEngine {
         fittest = currentNets;
         boolean incrementGeneration = fittest.size() < this.netsPerGeneration;
         long i = NeuralNet.getCurrentGeneration(), end = i + this.generations;
-        for (;i <= end && !exit; i++) {
+        for (;i <= end && !this.exit; i++) {
 
             if (incrementGeneration) i = NeuralNet.nextGeneration(); //only increment to nextGeneration if i < end, so the Shutdown hook has correct generations
             else incrementGeneration = true; //for the first iteration only
@@ -181,11 +165,11 @@ public class EvolutionEngine {
         netTracker.cullOld();
 
         System_out.println("MAIN THREAD HAS FINISHED CRITICAL SHUTDOWN TASKS... cleaning up");
-        finished = i >= end & !exit;
+        this.finished = i >= end & !this.exit;
 
         synchronized (currentIterator) {
             currentNets = fittest;
-            exit = true;
+            this.exit = true;
             currentIterator.notifyAll();
         }
     }
@@ -205,7 +189,7 @@ public class EvolutionEngine {
         if (notFirstIteration) processLegacies(gen);
         while (runRound()) { }
         waitForWorkerThreads();
-        if (exit) return;
+        if (this.exit) return;
 
         fittest = netTracker.addFittest(fitnesses, this.reproduceBest);
         checkForRandNets();
@@ -220,7 +204,9 @@ public class EvolutionEngine {
 
         int n = 0;
         for (Mutator<? extends BoardNet> mutator : mutators) {
-            newGen.addAll(mutator.mutate(counts[n++]));
+            int count = counts[n++];
+            if (count == 0) break;
+            newGen.addAll(mutator.mutate(count));
         }
 
         return newGen;
@@ -237,10 +223,10 @@ public class EvolutionEngine {
     private static final BoardInterface mainsBoard = new BoardInterface();
 
     private boolean runRound() {
-        if (exit) return false;
+        if (this.exit) return false;
         BoardNet net;
         synchronized (currentIterator) {
-            if (exit || !currentIterator.value.hasNext()) return false;
+            if (this.exit || !currentIterator.value.hasNext()) return false;
             net = currentIterator.value.next();;
             currentIterator.notifyAll();
         }
@@ -268,11 +254,7 @@ public class EvolutionEngine {
     }
 
     private boolean isRandLineage(BoardNet net) {
-        long[] lineage = net.getLineage();
-
-        return lineage.length == 0
-                ? net == this.randNet
-                : lineage[lineage.length - 1] == RAND_HASH;
+        return net.getLineage().lineageContains(RAND_HASH) > 0.5;
     }
 
     private void processLegacies(long gen) {
@@ -316,10 +298,10 @@ public class EvolutionEngine {
         // The swapping out task is mostly waiting, so this can be delegated to a small extra thread
         // while the main thread focuses on filterHashes()
         Thread iteratorSwapper = new Thread(() -> {
-            if (exit) return;
+            if (this.exit) return;
             synchronized (currentIterator) {
                 while (currentIterator.value.hasNext()) {
-                    if (exit) return;
+                    if (this.exit) return;
                     try {
                         currentIterator.wait();
                     } catch (InterruptedException e) {
@@ -334,7 +316,7 @@ public class EvolutionEngine {
         iteratorSwapper.start();
 
         while (iteratorSwapper.isAlive()) {
-            if (exit) return;
+            if (this.exit) return;
             if (!runRound()) {
                 try { iteratorSwapper.join(1000); }
                 catch (InterruptedException e) { e.printStackTrace(System_err); }
@@ -394,7 +376,7 @@ public class EvolutionEngine {
             fittest.add(this.randNet);
         }
     }
-    
+
     private class WorkerThread extends Thread {
 
         private BoardInterface board = new BoardInterface();
@@ -453,7 +435,7 @@ public class EvolutionEngine {
             boolean addedToThreadsIdle = false;
             try {
                 synchronized (currentIterator) {
-                    if (exit) return null;
+                    if (EvolutionEngine.this.exit) return null;
                     while (currentIterator.value == null || !currentIterator.value.hasNext()) {
                         synchronized (threadsIdle) {
                             addedToThreadsIdle = true;
@@ -469,7 +451,7 @@ public class EvolutionEngine {
                             System_err.println("Worker tread, Id: " + current.getId());
                             e.printStackTrace(System_err);
                         }
-                        if (exit) return null;
+                        if (EvolutionEngine.this.exit) return null;
                     }
                     currentIterator.notifyAll();
                     return currentIterator.value.next();
@@ -503,7 +485,7 @@ public class EvolutionEngine {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-        if (!finished) {
+        if (!EvolutionEngine.this.finished) {
             waitForThreadsToExit(reader);
             if (!askToSave(filename, reader)) {
                 System_all.println("Not saving...\nBYE");
@@ -525,7 +507,7 @@ public class EvolutionEngine {
     }
 
     private void waitForThreadsToExit(BufferedReader reader) {
-        exit = true;
+        this.exit = true;
         System_err.println("\n*****************************************************************************\n\n"
                 + "PROCESS INTERRUPTED ... waiting for threads to finish before attempting to save\n"
                 + "Press Enter to continue without waiting...\n"

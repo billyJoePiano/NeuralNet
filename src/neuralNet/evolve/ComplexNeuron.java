@@ -324,10 +324,6 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         private final List<Input> sensors = makeSensors();
         private final List<Output> decisionNodes = makeDecisionNodes();
 
-        private InternalNet(InternalNet deserializedFrom, Void v) {
-            super(deserializedFrom, v);
-        }
-
         private InternalNet() { }
 
         private InternalNet(NeuralNet cloneFrom) {
