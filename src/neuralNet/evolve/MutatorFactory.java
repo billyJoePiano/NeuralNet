@@ -13,8 +13,6 @@ public interface MutatorFactory<//S extends Sensable<S>,
 
 
     public static int[] calcCounts(int fittestCount, int netsToMake) {
-        System.out.println(fittestCount + " " + netsToMake);
-
         int[] makeMutations = new int[fittestCount];
 
         if (netsToMake <= fittestCount) {

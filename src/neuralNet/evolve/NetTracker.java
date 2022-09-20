@@ -171,6 +171,26 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
         }
     }
 
+    public static class KeepIncluding<N extends NeuralNet<?, N, ?>> implements KeepLambda<N> {
+        private final KeepLambda<? super N> keepLambda;
+        private final List<N> keepList;
+
+        public KeepIncluding(Collection<? extends N> keepList) {
+            this(DEFAULT_KEEP_LAMBDA, keepList);
+        }
+
+        public KeepIncluding(KeepLambda<? super N> keepLambda, Collection<? extends N> keepList) {
+            this.keepLambda = keepLambda;
+            this.keepList = new ArrayList<>(keepList);
+        }
+
+
+        @Override
+        public boolean keep(long currentGen, long genRating, N net) {
+            return keepList.contains(net) || keepLambda.keep(currentGen, genRating, net);
+        }
+    }
+
 
     public class LegacyRecord implements Comparable<LegacyRecord>, Serializable {
         public final N net;
@@ -489,15 +509,20 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             this.nets.remove(legacy.net);
             if(legacy.fitness != null) this.fitnesses.remove(legacy.fitness);
             extinctLineages.add(legacy.net.getNeuralHash());
-            for (long ancestor : legacy.net.lineageLegacy) {
+            for (Long ancestor : legacy.net.getLineage()) {
                 extinctLineages.add(ancestor);
             }
         }
 
-        for (N net : this.nets.keySet()) {
-            extinctLineages.remove(net.getNeuralHash());
-            for (long ancestor : net.lineageLegacy) {
-                extinctLineages.remove(ancestor);
+        for (Iterator<Long> iterator = extinctLineages.iterator();
+                iterator.hasNext();) {
+
+            long hash = iterator.next();
+            for (N net : this.nets.keySet()) {
+                if (net.getLineage().lineageContains(hash) > 0.0) {
+                    iterator.remove();
+                    break;
+                }
             }
         }
 
@@ -516,7 +541,6 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             boolean remove = true;
 
             for (N net1 : nets) {
-                long[] lineage1 = net1.lineageLegacy;
                 boolean reachedNet1 = false;
                 for (N net2 : nets) {
                     if (!reachedNet1) {

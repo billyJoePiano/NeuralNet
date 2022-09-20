@@ -34,14 +34,14 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
     private static final Generation CURRENT = Generation.CURRENT;
 
-    public final long generation;
-    public long[] lineageLegacy;
+    public /*final*/ long generation;
+    //public transient long[] lineage;
 
     private transient Supplier<Lineage> makeLineage;
     private Lineage lineage = null;
 
-    private final SerializableWeakHashSet<SignalProvider> providers;
-    private final SerializableWeakHashSet<SignalConsumer> consumers;
+    private /*final*/ SerializableWeakHashSet<SignalProvider> providers;
+    private /*final*/ SerializableWeakHashSet<SignalConsumer> consumers;
 
     private SerializableWeakRef<NoOp> noOp;
 
@@ -52,40 +52,106 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
     private transient Long hashCache = null;
 
+    @Serial
     private Object writeReplace() throws ObjectStreamException {
         this.getLineage();
         return this;
     }
 
+    /*
+    // for converting from legacy lineage system to new lineage system
+    // 'final' must be removed from generation, providers, and consumers
+    private static final Object defaultPlaceholder = new Object();
+
+    @Serial
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        GetField getField = stream.readFields();
+
+        this.generation = getField.get("generation", -1L);
+        this.providers = (SerializableWeakHashSet<SignalProvider>) getField.get("providers", null);
+        this.consumers = (SerializableWeakHashSet<SignalConsumer>) getField.get("consumers", null);
+        this.noOp = (SerializableWeakRef<NoOp>) getField.get("noOp", null);
+
+        if (this.generation == -1 || this.providers == null || this.consumers == null) throw new IllegalStateException();
+
+        Object lineage = getField.get("lineage", defaultPlaceholder);
+        if (lineage != defaultPlaceholder) {
+            if (lineage == null) throw new IllegalStateException();
+            if (!(lineage instanceof long[] lin)) throw new IllegalStateException();
+            this.lineage = lin;
+        }
+    }
+     */
+
+    /*
+    // converting new lineage field name from lineageNew to lineage
+    private static final Object defaultPlaceholder = new Object();
+    @Serial
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        GetField getField = stream.readFields();
+
+        this.generation = getField.get("generation", -1L);
+        this.providers = (SerializableWeakHashSet<SignalProvider>) getField.get("providers", null);
+        this.consumers = (SerializableWeakHashSet<SignalConsumer>) getField.get("consumers", null);
+        this.noOp = (SerializableWeakRef<NoOp>) getField.get("noOp", null);
+
+        if (this.generation == -1 || this.providers == null || this.consumers == null) throw new IllegalStateException();
+
+        Object lineage = getField.get("lineageNew", defaultPlaceholder);
+        if (lineage != defaultPlaceholder) {
+            if (lineage == null) throw new IllegalStateException();
+            if (!(lineage instanceof Lineage lin)) throw new IllegalStateException();
+            this.lineage = lin;
+        }
+    }
+
+     */
+
+
+
+    /*
     private static Map<Long, Lineage> lineagesMap;
     private static Map<Long, long[]> legacyComparison;
 
     public static void clearLegacyLineagesMap() {
         lineagesMap = null;
+        legacyComparison = null;
     }
+     */
 
     protected Object readResolve() throws ObjectStreamException {
         this.providersView = this.providers.getView();
         this.consumersView = this.consumers.getView();
         if (this.generation > CURRENT.generation) CURRENT.generation = this.generation;
 
-        if (this.lineageLegacy != null) {
-            if (lineagesMap == null) lineagesMap = new TreeMap<>();
-            this.lineage = SingleLineage.fromLegacyArray(this.lineageLegacy, this.getNeuralHash(), lineagesMap);
+        /*
+        if (this.lineage != null) {
+            if (lineagesMap == null) {
+                lineagesMap = new TreeMap<>();
+                legacyComparison = new TreeMap<>();
+            }
+            this.lineageNew = SingleLineage.fromLegacyArray(this.lineage, this.getNeuralHash(), lineagesMap);
 
             for (Map.Entry<Long, long[]> entry : legacyComparison.entrySet()) {
-                Lineage otherNew = lineagesMap.get(entry.getKey());
+                long otherHash = entry.getKey();
+                Lineage otherNew = lineagesMap.get(otherHash);
 
-                double newMethod = this.lineage.getKinshipScore(otherNew);
-                double oldMethod = NeuralHash.collisionKinship(this.getNeuralHash(), this.lineageLegacy, entry.getValue());
-                if (newMethod != oldMethod) throw new IllegalStateException();
-                if (newMethod != otherNew.getKinshipScore(this.lineage)) throw new IllegalStateException();
+                double newMethod = this.lineageNew.getKinshipScore(otherNew);
+                double otherNewMethod = otherNew.getKinshipScore(this.lineageNew);
+                if (newMethod != otherNewMethod) throw new IllegalStateException(newMethod + " " + otherNewMethod);
+
+                long[] otherLegacy = entry.getValue();
+                if (otherLegacy.length > this.lineage.length) otherHash = this.getNeuralHash();
+
+                double oldMethod = NeuralHash.collisionKinship(otherHash, this.lineage, entry.getValue());
+                if (newMethod != oldMethod) throw new IllegalStateException(newMethod + " " + oldMethod);
             }
 
-            legacyComparison.put(this.getNeuralHash(), this.lineageLegacy);
-            this.lineageLegacy = null;
+            legacyComparison.put(this.getNeuralHash(), this.lineage);
+            this.lineage = null;
 
-        } else if (this.lineage == null) throw new IllegalStateException();
+        } else if (this.lineageNew == null) throw new IllegalStateException();
+         */
 
         return this;
     }
@@ -136,7 +202,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
         }
          */
 
-        this.lineageLegacy = null;
+        this.lineage = null;
         this.makeLineage = () -> new SingleLineage(cloneFrom.getLineage(), this.getNeuralHash());
     }
 
@@ -147,7 +213,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
         this.providersView = this.providers.getView();
         this.consumersView = this.consumers.getView();
 
-        this.lineageLegacy = null;
+        this.lineage = null;
         this.makeLineage = () -> new DualLineage(parent1.getLineage(), parent2.getLineage(), this.getNeuralHash());
     }
 
@@ -158,13 +224,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
         this.providersView = this.providers.getView();
         this.consumersView = this.consumers.getView();
 
-        this.lineageLegacy = null;
+        this.lineage = null;
         this.makeLineage = () -> new MultiLineage(MultiLineage.convert(parents), this.getNeuralHash());
     }
 
     public Lineage getLineage() {
         if (this.lineage == null) {
-            if (this.makeLineage == null) throw new IllegalStateException();
+            if (this.makeLineage == null) throw new IllegalStateException(this.toString());
             this.lineage = this.makeLineage.get();
             this.makeLineage = null;
         }
@@ -705,7 +771,7 @@ public abstract class NeuralNet<S extends Sensable<S>,
                 + "(generation: " + this.generation
                 + ", providers: " + this.getProviders().size()
                 + ", consumers: " + this.getConsumers().size()
-                + ", hash: " + NeuralHash.toHex(this.getNeuralHash())
-                + ", lineage(" + this.lineageLegacy.length + "): " + NeuralHash.toHex(this.lineageLegacy) + "  )";
+                + ", hash: " + NeuralHash.toHex(this.getNeuralHash());
+                //+ ", lineage(" + this.lineage.length + "): " + NeuralHash.toHex(this.lineage) + "  )";
     }
 }

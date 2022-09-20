@@ -248,6 +248,7 @@ public class NeuralHash {
 
         double midpointLen = (double)(lineage1.length + lineage2.length) / 2.0;
         if (sharedAncestors > midpointLen) return 1.0;
+        else if (midpointLen == 0) return 0.0;
         else return (double)sharedAncestors / midpointLen;
     }
 
@@ -257,10 +258,10 @@ public class NeuralHash {
         System.err.println("Possible hash collision: " + toHex(hash)
                 + "\n\t" + net2 + "\n\t" + net1);
 
-        long[] newLin = net2.lineageLegacy, oldLin = net1.lineageLegacy;
-        double kinship = NeuralHash.collisionKinship(hash, newLin, oldLin);
+        Lineage newLin = net2.getLineage(), oldLin = net1.getLineage();
+        double kinship = newLin.getKinshipScore(oldLin);
         System.err.print("Kinship score: " + kinship);
-        double smallerSize = Math.max(1, Math.min(newLin.length, oldLin.length));
+        double smallerSize = Math.max(1, Math.min(newLin.getGenerations(), oldLin.getGenerations()));
         if (kinship < (smallerSize - 1) / smallerSize) {
             System.err.println(" ... too small");
             System.err.println("Lineages appear too different.  Probable hash collision");

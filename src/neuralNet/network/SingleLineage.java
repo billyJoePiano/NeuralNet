@@ -1,10 +1,16 @@
 package neuralNet.network;
 
+import neuralNet.util.*;
+
 import java.util.*;
 
 public class SingleLineage implements Lineage {
+    public static final long serialVersionUID = 1544874426661108741L;
+
     public final Lineage parentLineage;
     public final long myHash;
+
+    private transient Long[] ancestors;
 
     public SingleLineage(Lineage parentLineage, long myHash) {
         if (parentLineage == null) throw new NullPointerException();
@@ -13,8 +19,8 @@ public class SingleLineage implements Lineage {
     }
 
     @Override
-    public KinshipTracker recurse(Lineage otherLineage) {
-        KinshipTracker tracker = this.parentLineage.recurse(otherLineage);
+    public KinshipTracker recursiveSearch(Lineage otherLineage) {
+        KinshipTracker tracker = this.parentLineage.recursiveSearch(otherLineage);
         tracker.sharedAncestors += otherLineage.lineageContains(this.myHash);
         tracker.generations++;
         return tracker;
@@ -54,5 +60,54 @@ public class SingleLineage implements Lineage {
 
         Lineage prev = previous;
         return preexisting.computeIfAbsent(myHash, mh -> new SingleLineage(prev, mh));
+    }
+
+    @Override
+    public Iterator<Long> iterator() {
+        if (this.ancestors == null) makeAncestorsArray();
+        return new UnmodifiableArrayIterator<>(this.ancestors);
+    }
+
+    @Override
+    public int size() {
+        if (this.ancestors == null) this.iterator();
+        return this.ancestors.length;
+    }
+
+    private synchronized void makeAncestorsArray() {
+        if (this.ancestors != null) return;
+        LineageIterator iterator = new LineageIterator(this.parentLineage.iterator());
+        this.ancestors = new Long[this.parentLineage.size() + 1];
+
+        int i = 0;
+        for (Long ancestor : iterator) {
+            this.ancestors[i++] = ancestor;
+        }
+    }
+
+    private class LineageIterator implements Iterator<Long>, Iterable<Long> {
+        private boolean providedOwnHash = false;
+        private final Iterator<Long> parent;
+
+        private LineageIterator(Iterator<Long> parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return !this.providedOwnHash || this.parent.hasNext();
+        }
+
+        @Override
+        public Long next() {
+            if (this.providedOwnHash) return this.parent.next();
+            this.providedOwnHash = true;
+            return SingleLineage.this.myHash;
+        }
+
+        @Override
+        public Iterator<Long> iterator() {
+            return this;
+        }
     }
 }

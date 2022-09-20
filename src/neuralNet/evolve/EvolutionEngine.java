@@ -34,9 +34,7 @@ public class EvolutionEngine {
 
     private final List<BoardNet> randNetsToKeep = new ArrayList<>(this.minRandLineageRetained);
     
-    private NetTracker.KeepLambda<BoardNet> keepEdgeAndRand = (currentGen, genRating, net) ->
-            net == this.edgeNet || net == this.randNet || this.randNetsToKeep.contains(net)
-                    || NetTracker.DEFAULT_KEEP_LAMBDA.keep(currentGen, genRating, net);
+    private NetTracker.KeepLambda<BoardNet> keepEdgeAndRand = new NetTracker.KeepIncluding<>(List.of(edgeNet, randNet));
 
     public final long RAND_HASH = this.randNet.getNeuralHash();
 
@@ -220,7 +218,7 @@ public class EvolutionEngine {
         }
     }
 
-    private static final BoardInterface mainsBoard = new BoardInterface();
+    private final BoardInterface mainsBoard = new BoardInterface();
 
     private boolean runRound() {
         if (this.exit) return false;
@@ -660,7 +658,7 @@ public class EvolutionEngine {
             e.printStackTrace(System_err);
 
             while (true) try {
-                System_err.println("ATTEMPT AGAIN?  (enter 'y' or 'n'");
+                System_err.println("ATTEMPT AGAIN?  (enter 'y' or 'n')");
                 String in = reader.readLine().toLowerCase();
 
                 if ("y".equals(in)) break;

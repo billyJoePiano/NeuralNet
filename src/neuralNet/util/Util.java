@@ -308,8 +308,8 @@ public abstract class Util {
             if (first) first = false;
             else str.append(", ");
             str.append(val);
-
         }
+
         str.append(']');
         return str.toString();
     }
@@ -322,8 +322,22 @@ public abstract class Util {
             if (first) first = false;
             else str.append(", ");
             str.append(val);
-
         }
+
+        str.append(']');
+        return str.toString();
+    }
+
+    public static <T> String toString(T[] arr) {
+        StringBuilder str = new StringBuilder();
+        str.append('[');
+        boolean first = true;
+        for (T val : arr) {
+            if (first) first = false;
+            else str.append(", ");
+            str.append(val.toString());
+        }
+
         str.append(']');
         return str.toString();
     }
