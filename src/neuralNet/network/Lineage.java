@@ -11,8 +11,6 @@ public interface Lineage extends Iterable<Long>, Serializable {
     public double getGenerations();
     public KinshipTracker recursiveSearch(Lineage otherLineage);
 
-    public int size();
-
     public class KinshipTracker {
         public double generations;
         public double sharedAncestors;

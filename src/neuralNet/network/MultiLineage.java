@@ -1,15 +1,11 @@
 package neuralNet.network;
 
-import neuralNet.util.*;
-
 import java.util.*;
 
 public class MultiLineage implements Lineage {
     public final double sumWeight;
-    private final Map<Lineage, Double> parents = new LinkedHashMap<>();
+    private final Map<Lineage, Double> parents;
     public final long myHash;
-
-    private transient Long[] ancestors;
 
     public static Map<Lineage, Double> convert(Collection<NeuralNet<?, ?, ?>> parents) {
         Map<Lineage, Double> converted = new HashMap<>();
@@ -28,9 +24,10 @@ public class MultiLineage implements Lineage {
     }
 
     public MultiLineage(Map<Lineage, Double> parents, long myHash) {
-        this.myHash = myHash;
-
         if (parents.size() < 2) throw new IllegalArgumentException();
+
+        this.parents = new LinkedHashMap<>();
+        this.myHash = myHash;
 
         double sumWeight = 0;
 
@@ -91,32 +88,12 @@ public class MultiLineage implements Lineage {
 
     @Override
     public Iterator<Long> iterator() {
-        if (this.ancestors == null) makeAncestorsArray();
-        return new UnmodifiableArrayIterator<>(this.ancestors);
-    }
-
-    @Override
-    public int size() {
-        if (this.ancestors == null) this.iterator();
-        return this.ancestors.length;
-    }
-
-    private synchronized void makeAncestorsArray() {
-        if (this.ancestors != null) return;
         List<Iterator<Long>> parents = new ArrayList<>(this.parents.size());
-        int size = 0;
         for (Lineage parent : this.parents.keySet()) {
             parents.add(parent.iterator());
-            size += parent.size();
         }
 
-        LineageIterator iterator = new LineageIterator(parents);
-        this.ancestors = new Long[size + 1];
-
-        int i = 0;
-        for (Long ancestor : iterator) {
-            this.ancestors[i++] = ancestor;
-        }
+        return new LineageIterator(parents);
     }
 
     private class LineageIterator implements Iterator<Long>, Iterable<Long> {

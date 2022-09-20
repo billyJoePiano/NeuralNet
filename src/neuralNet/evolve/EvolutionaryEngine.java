@@ -14,7 +14,7 @@ import java.util.function.*;
 
 import static neuralNet.util.Util.*;
 
-public class EvolutionEngine {
+public class EvolutionaryEngine {
     public final String filename;
     public final MutatorFactory<BoardNet> mutatorFactory;
 
@@ -50,10 +50,10 @@ public class EvolutionEngine {
     private TreeSet<BoardInterface.BoardNetFitness> fitnesses;
     private final NetTracker<BoardNet, BoardInterface.BoardNetFitness> netTracker = new NetTracker<>(keepEdgeAndRand);
 
-    private final GenerationHeaderPrintStream System_out, errGen;
-    private final TeePrintStream System_err, System_all;
+    public final GenerationHeaderPrintStream System_out, errGen;
+    public final TeePrintStream System_err, System_all;
 
-    public EvolutionEngine(MutatorFactory<BoardNet> mutatorFactory) {
+    public EvolutionaryEngine(MutatorFactory<BoardNet> mutatorFactory) {
         this.mutatorFactory = mutatorFactory;
         this.filename = mutatorFactory.getClass().getSimpleName() + " "
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH_mm_ss"));
@@ -69,13 +69,25 @@ public class EvolutionEngine {
             throw new RuntimeException(e);
         }
 
-        System_out = new GenerationHeaderPrintStream(System.out, outFile);
+        System_out = new GenerationHeaderPrintStream(System_out_orig, outFile);
         errGen = new GenerationHeaderPrintStream(errFile);
 
-        System_err = new TeePrintStream(System.err, errGen, outFile);
-        System_all = new TeePrintStream(System_out, errGen);
+        this.System_err = new TeePrintStream(System_err_orig, errGen, outFile);
+        this.System_all = new TeePrintStream(System_out, errGen);
     }
-    
+
+    public void replaceSystemStreams() {
+        System.setErr(this.System_err);
+        System.setOut(this.System_out);
+    }
+
+    public static final PrintStream System_out_orig = System.out, System_err_orig = System.err;
+    public static void restoreSystemStreams() {
+        System.setErr(System_err_orig);
+        System.setOut(System_out_orig);
+    }
+
+
 
     private boolean exit = false;
     private boolean finished = false;
@@ -412,7 +424,7 @@ public class EvolutionEngine {
                     long start = System.nanoTime();
                     long hash = net.getNeuralHash();
                     long end = System.nanoTime();
-                    if (end - start >= EvolutionEngine.this.slowHashCalculationNs) {
+                    if (end - start >= EvolutionaryEngine.this.slowHashCalculationNs) {
                         System_err.println("SLOW HASH (" + ((double) (end - start) / BILLION) + "seconds) : " + NeuralHash.toHex(hash));
                         synchronized (netTracker) {
                             netTracker.addToSpecialNets("Slow Hashes", net);
@@ -433,12 +445,12 @@ public class EvolutionEngine {
             boolean addedToThreadsIdle = false;
             try {
                 synchronized (currentIterator) {
-                    if (EvolutionEngine.this.exit) return null;
+                    if (EvolutionaryEngine.this.exit) return null;
                     while (currentIterator.value == null || !currentIterator.value.hasNext()) {
                         synchronized (threadsIdle) {
                             addedToThreadsIdle = true;
                             threadsIdle.add(current);
-                            if (threadsIdle.size() >= EvolutionEngine.this.threadsCount) {
+                            if (threadsIdle.size() >= EvolutionaryEngine.this.threadsCount) {
                                 threadsIdle.notifyAll(); //tell the main thread that worker threads are done
                             }
                         }
@@ -449,7 +461,7 @@ public class EvolutionEngine {
                             System_err.println("Worker tread, Id: " + current.getId());
                             e.printStackTrace(System_err);
                         }
-                        if (EvolutionEngine.this.exit) return null;
+                        if (EvolutionaryEngine.this.exit) return null;
                     }
                     currentIterator.notifyAll();
                     return currentIterator.value.next();
@@ -483,7 +495,7 @@ public class EvolutionEngine {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-        if (!EvolutionEngine.this.finished) {
+        if (!EvolutionaryEngine.this.finished) {
             waitForThreadsToExit(reader);
             if (!askToSave(filename, reader)) {
                 System_all.println("Not saving...\nBYE");

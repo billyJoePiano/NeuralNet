@@ -508,7 +508,7 @@ public class NetTracker<N extends NeuralNet<?, N, ?>, F extends Fitness<?, F>> i
             iterator.remove();
             this.nets.remove(legacy.net);
             if(legacy.fitness != null) this.fitnesses.remove(legacy.fitness);
-            extinctLineages.add(legacy.net.getNeuralHash());
+            //extinctLineages.add(legacy.net.getNeuralHash()); //with new Lineage system, the hash of the net itself is included during iteration, as the first element
             for (Long ancestor : legacy.net.getLineage()) {
                 extinctLineages.add(ancestor);
             }

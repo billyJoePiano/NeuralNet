@@ -9,7 +9,8 @@ import java.util.stream.*;
 
 public class TestAddNeurons implements MutatorFactory<BoardNet> {
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-        EvolutionEngine engine = new EvolutionEngine(new TestAddNeurons());
+        EvolutionaryEngine engine = new EvolutionaryEngine(new TestAddNeurons());
+        engine.replaceSystemStreams();
 
         if (args.length > 0) engine.loadSaved(args[0]);
 

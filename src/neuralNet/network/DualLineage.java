@@ -1,20 +1,10 @@
 package neuralNet.network;
 
-import neuralNet.util.*;
-
 import java.util.*;
 
-public class DualLineage implements Lineage {
-    public final Lineage parent1, parent2;
-    public final long myHash;
-
-    private Long[] ancestors;
-
-    public DualLineage(Lineage parent1, Lineage parent2, long myHash) {
+public record DualLineage(Lineage parent1, Lineage parent2, long myHash) implements Lineage {
+    public DualLineage {
         if (parent1 == null || parent2 == null) throw new NullPointerException();
-        this.parent1 = parent1;
-        this.parent2 = parent2;
-        this.myHash = myHash;
     }
 
     @Override
@@ -41,28 +31,10 @@ public class DualLineage implements Lineage {
 
     @Override
     public Iterator<Long> iterator() {
-        if (this.ancestors == null) makeAncestorsArray();
-        return new UnmodifiableArrayIterator<>(this.ancestors);
+        return new LineageIterator(this.parent1.iterator(), this.parent2.iterator());
     }
 
-    @Override
-    public int size() {
-        if (this.ancestors == null) this.iterator();
-        return this.ancestors.length;
-    }
-
-    private synchronized void makeAncestorsArray() {
-        if (this.ancestors != null) return;
-        LineageIterator iterator = new LineageIterator(this.parent1.iterator(), this.parent2.iterator());
-        this.ancestors = new Long[this.parent1.size() + this.parent2.size() + 1];
-
-        int i = 0;
-        for (Long ancestor : iterator) {
-            this.ancestors[i++] = ancestor;
-        }
-    }
-
-    private class LineageIterator implements Iterator<Long>, Iterable<Long> {
+    private class LineageIterator implements Iterator<Long> {
         private byte state = 0;
         private final Iterator<Long> parent1;
         private final Iterator<Long> parent2;
@@ -75,7 +47,7 @@ public class DualLineage implements Lineage {
 
         @Override
         public boolean hasNext() {
-            return this.state != (byte)-1;
+            return this.state != (byte) -1;
         }
 
         @Override
@@ -120,11 +92,6 @@ public class DualLineage implements Lineage {
                 default:
                     throw new IllegalStateException();
             }
-        }
-
-        @Override
-        public Iterator<Long> iterator() {
-            return this;
         }
     }
 }
