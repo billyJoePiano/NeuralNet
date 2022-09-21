@@ -11,7 +11,7 @@ public record SingleLineage(Lineage parentLineage, long myHash) implements Linea
 
     @Override
     public KinshipTracker recursiveSearch(Lineage otherLineage) {
-        KinshipTracker tracker = this.parentLineage.recursiveSearch(otherLineage);
+        KinshipTracker tracker = this.parentLineage.cachingRecursiveSearch(otherLineage);
         tracker.sharedAncestors += otherLineage.lineageContains(this.myHash);
         tracker.generations++;
         return tracker;
@@ -21,6 +21,11 @@ public record SingleLineage(Lineage parentLineage, long myHash) implements Linea
     @Override
     public double getGenerations() {
         return this.parentLineage.getGenerations() + 1.0;
+    }
+
+    @Override
+    public long getHash() {
+        return this.myHash;
     }
 
     @Override

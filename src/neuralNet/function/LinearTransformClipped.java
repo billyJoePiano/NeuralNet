@@ -17,6 +17,11 @@ public class LinearTransformClipped implements NeuralFunction.Tweakable<LinearTr
         return Double.doubleToLongBits(coefficient) ^ Double.doubleToLongBits(offset);
     }
 
+    @Override
+    public boolean sameBehavior(LinearTransformClipped other) {
+        return this.coefficient == other.coefficient && this.offset == other.offset;
+    }
+
     public static CachingNeuronUsingTweakableFunction makeNeuron(double coefficient, double offset) {
         return new CachingNeuronUsingTweakableFunction(new LinearTransformClipped(coefficient, offset));
     }

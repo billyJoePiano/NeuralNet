@@ -44,6 +44,11 @@ public class Ceiling implements NeuralFunction.Tweakable<Ceiling> {
     }
 
     @Override
+    public boolean sameBehavior(Ceiling other) {
+        return this.ceiling == other.ceiling;
+    }
+
+    @Override
     public Ceiling tweak(short[] params) {
         return new Ceiling((short)(this.ceiling + params[0]));
     }

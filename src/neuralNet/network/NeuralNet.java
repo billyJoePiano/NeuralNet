@@ -362,6 +362,11 @@ public abstract class NeuralNet<S extends Sensable<S>,
         }
     }
 
+    @Override
+    public long getGeneration() {
+        return this.generation;
+    }
+
     /**
      * IMPORTANT: MUST BE RUN AFTER MUTATING A NETWORK, BEFORE THE NETWORK IS USED OR CLONED --
      * Clears the set of neurons and repopulates it with all SignalProviders which are reachable from
@@ -601,6 +606,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
         @Override
         public long calcNeuralHash() {
             return HASH_HEADER ^ Long.rotateLeft(this.getSensorId(), 29);
+        }
+
+        @Override
+        public boolean sameBehavior(SignalProvider other) {
+            if (other == this) return true;
+            if (other == null || other.getClass() != this.getClass()) return false;
+            return this.getSensorId() == ((Sensor) other).getSensorId();
         }
     }
 

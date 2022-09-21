@@ -9,8 +9,8 @@ public record DualLineage(Lineage parent1, Lineage parent2, long myHash) impleme
 
     @Override
     public KinshipTracker recursiveSearch(Lineage otherLineage) {
-        KinshipTracker tracker1 = this.parent1.recursiveSearch(otherLineage);
-        KinshipTracker tracker2 = this.parent2.recursiveSearch(otherLineage);
+        KinshipTracker tracker1 = this.parent1.cachingRecursiveSearch(otherLineage);
+        KinshipTracker tracker2 = this.parent2.cachingRecursiveSearch(otherLineage);
         tracker1.generations = (tracker1.generations + tracker2.generations) / 2;
         tracker1.sharedAncestors = (tracker1.sharedAncestors + tracker2.generations) / 2;
 
@@ -21,6 +21,11 @@ public record DualLineage(Lineage parent1, Lineage parent2, long myHash) impleme
     @Override
     public double getGenerations() {
         return (this.parent1.getGenerations() + this.parent2.getGenerations()) / 2 + 1;
+    }
+
+    @Override
+    public long getHash() {
+        return this.myHash;
     }
 
     @Override

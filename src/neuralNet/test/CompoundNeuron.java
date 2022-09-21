@@ -86,6 +86,11 @@ public class CompoundNeuron extends CachingNeuron {
     }
 
     @Override
+    public boolean sameBehavior(SignalProvider other) {
+        return false;
+    }
+
+    @Override
     public void before() {
         super.before();
         for (Neuron neuron : this.neurons) {

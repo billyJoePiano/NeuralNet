@@ -2,6 +2,7 @@ package neuralNet.evolve;
 
 import neuralNet.network.*;
 import neuralNet.neuron.*;
+import neuralNet.util.*;
 
 import java.io.*;
 import java.util.*;
@@ -236,6 +237,14 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         @Override
         public long calcNeuralHashFor(LoopingNeuron looper) {
             return this.decisionNode.getInputs().get(0).getNeuralHashFor(looper);
+        }
+
+        @Override
+        public boolean sameBehavior(SignalProvider other) {
+            if (other == this) return true;
+            if (!(other instanceof SecondaryMember o)) return false;
+            if (this.decisionNode.index != o.decisionNode.index) return false;
+            return ComplexNeuron.this.sameBehavior(o.getPrimaryNeuron());
         }
 
         @Override
@@ -524,6 +533,54 @@ public class ComplexNeuron extends CachingNeuron implements ComplexNeuronMember 
         for (int i = 0; i < this.numInputs; i++) {
             this.inputSensors.get(i).input = null;
         }
+    }
+
+
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (other == this) return true;
+        if (!(other instanceof ComplexNeuron o)) return false;
+        if (o.members.size() != this.members.size()) return false;
+
+        Map<SignalProvider, Set<SignalProvider>> checked = new HashMap<>();
+
+        for (DualIterable.Pair<InternalNet.Output> pair
+                : new DualIterable<>(this.net.decisionNodes, o.net.decisionNodes)) {
+
+            SignalProvider mine = pair.value1().getInputs().get(0),
+                         theirs = pair.value2().getInputs().get(0);
+            if (!sameBehavior(checked, mine, theirs)) return false;
+        }
+        return true;
+    }
+
+    private boolean sameBehavior(Map<SignalProvider, Set<SignalProvider>> checked,
+                                 SignalProvider mine, SignalProvider theirs) {
+
+        Set<SignalProvider> checkedAgainst = checked.computeIfAbsent(mine, p -> new HashSet<>());
+        if (checkedAgainst.contains(theirs)) return true;
+
+        if (!mine.sameBehavior(theirs)) return false;
+        checkedAgainst.add(theirs);
+
+        if (!(mine instanceof SignalConsumer mc)) {
+            if (theirs instanceof SignalConsumer) throw new IllegalStateException();
+            return true;
+        }
+        if (!(theirs instanceof SignalConsumer tc)) throw new IllegalStateException();
+
+        List<SignalProvider> myInputs = mc.getInputs();
+        List<SignalProvider> theirInputs = tc.getInputs();
+
+        if (myInputs == null) return theirInputs == null || theirInputs.size() == 0;
+        else if (theirInputs == null) return myInputs.size() == 0;
+
+        if (myInputs.size() != theirInputs.size()) return false;
+
+        for (DualIterable.Pair<SignalProvider> pair : new DualIterable<>(myInputs, theirInputs)) {
+            if (!sameBehavior(checked, pair.value1(), pair.value2())) return false;
+        }
+        return true;
     }
 
     @Override

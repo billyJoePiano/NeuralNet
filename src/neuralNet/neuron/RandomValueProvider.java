@@ -38,4 +38,9 @@ public class RandomValueProvider extends CachingProvider {
     public long getNeuralHashFor(LoopingNeuron looper) {
         return NEURAL_HASH;
     }
+
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        return other.getClass() == RandomValueProvider.class;
+    }
 }

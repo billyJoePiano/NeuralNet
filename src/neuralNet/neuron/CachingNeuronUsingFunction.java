@@ -96,6 +96,12 @@ public class CachingNeuronUsingFunction extends CachingNeuron {
     }
 
     @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (!(other instanceof CachingNeuronUsingFunction cn)) return false;
+        return this.outputFunction.sameBehavior(cn.outputFunction);
+    }
+
+    @Override
     public CachingNeuronUsingFunction clone() {
         return new CachingNeuronUsingFunction(this);
     }

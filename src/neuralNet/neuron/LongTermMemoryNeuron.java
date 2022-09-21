@@ -190,6 +190,14 @@ public class LongTermMemoryNeuron extends MemoryNeuron<LongTermMemoryNeuron> {
         return this.nextOutput;
     }
 
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (other == this) return true;
+        if (other == null) return false;
+        if (!(other instanceof LongTermMemoryNeuron o)) return false;
+        return this.defaultVal == o.defaultVal && this.delay == o.delay && this.fadeIn == o.fadeIn;
+    }
+
     public void after() {
         this.getOutput();
         // ensures that the output cache in CachingNeuron is populated with the CURRENT value from this.nextOutput

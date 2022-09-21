@@ -12,6 +12,8 @@ public interface SignalProvider extends Serializable {
     public boolean checkForLoops(LoopingNeuron looper);
     public void clearHashCache();
 
+    public boolean sameBehavior(SignalProvider other);
+
     /**
      * When implementing, return true if the consumer was not already in the set of consumers, false if it was.
      * More formally, return true if the set of consumers was mutated as a result of this call.

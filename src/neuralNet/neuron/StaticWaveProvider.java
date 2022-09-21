@@ -152,6 +152,13 @@ public class StaticWaveProvider extends CachingProvider implements SignalProvide
     }
 
 
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (other == this) return true;
+        if (!(other instanceof StaticWaveProvider o)) return false;
+        return this.waveFunction == o.waveFunction && this.period == o.period && this.phase == o.phase;
+    }
+
     public void after() {
         this.getOutput(); // populates cache if it hasn't been already, before this.rounds is mutated
 

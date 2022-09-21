@@ -53,7 +53,7 @@ public class MultiLineage implements Lineage {
         double sharedAncestors = 0;
 
         for (Map.Entry<Lineage, Double> entry : this.parents.entrySet()) {
-            KinshipTracker tracker = entry.getKey().recursiveSearch(otherLineage);
+            KinshipTracker tracker = entry.getKey().cachingRecursiveSearch(otherLineage);
             double weight = entry.getValue();
             generations += tracker.generations * weight;
             sharedAncestors += tracker.sharedAncestors * weight;
@@ -72,6 +72,11 @@ public class MultiLineage implements Lineage {
         }
 
         return generations / this.sumWeight;
+    }
+
+    @Override
+    public long getHash() {
+        return this.myHash;
     }
 
     @Override

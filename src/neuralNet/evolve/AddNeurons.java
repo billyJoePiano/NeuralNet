@@ -27,13 +27,11 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
         this.net = net;
     }
 
-    @Override
-    public N getDecisionProvider() {
+    public N getNet() {
         return this.net;
     }
 
-    @Override
-    public void setDecisionProvider(N decisionProvider) {
+    public void setNet(N decisionProvider) {
         if (this.net == null) this.net = decisionProvider;
         else if (this.net != decisionProvider) throw new UnsupportedOperationException();
     }

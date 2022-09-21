@@ -81,6 +81,13 @@ public class FixedValueProvider extends CachingProvider
     }
 
     @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (other == this) return true;
+        if (!(other instanceof FixedValueProvider o)) return false;
+        return this.value == o.value;
+    }
+
+    @Override
     protected short calcOutput() {
         return this.value;
     }

@@ -17,6 +17,11 @@ public record RootLineage(long myHash) implements Lineage {
     }
 
     @Override
+    public long getHash() {
+        return this.myHash;
+    }
+
+    @Override
     public double lineageContains(long hash) {
         return hash == this.myHash ? 1.0 : 0.0;
     }

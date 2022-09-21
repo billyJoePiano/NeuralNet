@@ -1,3 +1,5 @@
 # https://stackoverflow.com/questions/5421879/objectinputstream-happy-with-fileinputstream-not-happy-with-getresourceasstream/10686702#10686702
+# https://stackoverflow.com/questions/21822650/disable-git-eol-conversions
 
-*.nnt -crlf
+*.nnt binary
+* -text

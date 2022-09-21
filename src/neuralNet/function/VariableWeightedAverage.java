@@ -131,4 +131,9 @@ public class VariableWeightedAverage implements NeuralFunction.Tweakable<Variabl
     public long hashTweakMask() {
         return Double.doubleToLongBits(this.logMin) ^ Double.doubleToLongBits(this.logMax);
     }
+
+    @Override
+    public boolean sameBehavior(VariableWeightedAverage other) {
+        return this.logMin == other.logMin && this.logMax == other.logMax;
+    }
 }

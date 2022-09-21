@@ -146,4 +146,15 @@ public class WeightedAverage implements NeuralFunction.Tweakable<WeightedAverage
         }
         return hash;
     }
+
+    @Override
+    public boolean sameBehavior(WeightedAverage other) {
+        if (this.weightSum != other.weightSum) return false;
+        if (this.weights.length != other.weights.length) return false;
+
+        for (int i = 0; i < this.weights.length; i++) {
+            if (this.weights[i] != other.weights[i]) return false;
+        }
+        return true;
+    }
 }

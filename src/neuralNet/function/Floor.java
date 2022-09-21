@@ -63,4 +63,9 @@ public class Floor implements NeuralFunction.Tweakable<Floor> {
     public long hashTweakMask() {
         return Long.rotateLeft(floor & 0xffff, 17);
     }
+
+    @Override
+    public boolean sameBehavior(Floor other) {
+        return this.floor == other.floor;
+    }
 }

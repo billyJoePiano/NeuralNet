@@ -221,6 +221,13 @@ public class VariableWaveNeuron extends CachingNeuron implements SignalProvider.
         return roundClip(this.waveFunction.calc(position) * MAX_PLUS_ONE - 0.5);
     }
 
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (other == this) return true;
+        if (!(other instanceof VariableWaveNeuron o)) return false;
+        return this.waveFunction == o.waveFunction && this.periodMin == o.periodMin && this.periodMax == o.periodMax;
+    }
+
     public void after() {
         this.getOutput(); // populates cache if it hasn't been already, to ensure the round is processed
     }

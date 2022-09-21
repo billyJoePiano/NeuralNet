@@ -179,6 +179,15 @@ public class ShortTermMemoryNeuron extends MemoryNeuron<ShortTermMemoryNeuron> {
         return this.nextOutput;
     }
 
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        if (other == this) return true;
+        if (other == null) return false;
+        if (!(other instanceof ShortTermMemoryNeuron o)) return false;
+        return this.defaultVal == o.defaultVal && this.delay == o.delay && this.fadeIn == o.fadeIn
+                && this.length == o.length && this.fadeOut == o.fadeOut;
+    }
+
     public void after() {
         this.getOutput();
         // ensures that the output cache in CachingNeuron is populated with the CURRENT value from this.nextOutput

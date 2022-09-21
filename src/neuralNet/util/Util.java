@@ -341,4 +341,56 @@ public abstract class Util {
         str.append(']');
         return str.toString();
     }
+
+    public static boolean equals(long[] arr1, long[] arr2) {
+        if (arr1 == null) return arr2 == null;
+        else if (arr2 == null) return false;
+
+        if (arr1.length != arr2.length) return false;
+
+        for (int i = 0; i < arr1.length; i++) {
+            if (arr1[i] != arr2[i]) return false;
+        }
+        return true;
+    }
+
+
+    // NOT FINISHED!
+    public static long[] makeBitmask(boolean ... values) {
+        if (values == null ) return null;
+        else if (values.length == 0) return new long[0];
+
+        int lastSize = (values.length - 1) % 64 + 1;
+        int size = (values.length - lastSize) / 64 + 1;
+
+        long[] result = new long[size];
+
+        for (int r = size - 1; r != -1; r--) {
+            int i = values.length - 1 - 64 * (size - r) + lastSize;
+
+        }
+
+        for (int i = values.length - 1, r = size - 1, c = 64;;) {
+            result[r] |= values[i--] ? 0b1 : 0b0;
+
+            if (i == -1) break;
+            result[r] <<= 1;
+    //TODO
+
+        }
+        return null;
+    }
+
+    public static int count(boolean[] arr) {
+        int count = 0;
+        for (int i = 0; i < arr.length; i ++) {
+            if (arr[i]) count++;
+        }
+        return count;
+    }
+
+    public static int pow2(int exponent) {
+        if (exponent > 30 || exponent < 0) throw new ArithmeticException();
+        return 0b1 << exponent;
+    }
 }

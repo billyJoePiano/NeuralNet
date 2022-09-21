@@ -59,6 +59,11 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
         }
 
         @Override
+        public boolean sameBehavior(SignalProvider other) {
+            return false;
+        }
+
+        @Override
         public CachingProvider clone() {
             throw new UnsupportedOperationException();
         }
@@ -166,6 +171,11 @@ public class SwitchIterable implements Iterable<Short>, Iterator<Short>, SignalP
 
     @Override
     public void clearHashCache() { }
+
+    @Override
+    public boolean sameBehavior(SignalProvider other) {
+        return false;
+    }
 
     @Override
     public boolean addConsumer(SignalConsumer consumer) {

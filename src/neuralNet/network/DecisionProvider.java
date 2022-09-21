@@ -10,6 +10,9 @@ public interface DecisionProvider<S extends Sensable<S>,
                                     C extends DecisionConsumer<S, C, ?>>
         extends Serializable {
 
+    public long getGeneration();
+    public Lineage getLineage();
+
     public S getSensedObject();
     public void setSensedObject(S sensedObject);
 
