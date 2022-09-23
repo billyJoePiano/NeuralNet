@@ -12,8 +12,6 @@ public interface SensorNode<S extends Sensable<S>,
     public int getSensorId();
     public short sense();
 
-    //public int getOutputId(); // tells the Sensable object which output to assign the sensor to
-
     @Override
     default public SignalProvider clone() throws UnsupportedOperationException {
         throw new UnsupportedOperationException();

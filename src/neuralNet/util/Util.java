@@ -393,4 +393,14 @@ public abstract class Util {
         if (exponent > 30 || exponent < 0) throw new ArithmeticException();
         return 0b1 << exponent;
     }
+
+    public static long[] copyToPrimitive(Long[] arr) {
+        if (arr == null) return null;
+        long[] copy = new long[arr.length];
+
+        for (int i = 0; i < arr.length; i++) {
+            copy[i] = arr[i];
+        }
+        return copy;
+    }
 }

@@ -1,4 +1,6 @@
-package neuralNet.network;
+package neuralNet.evolve;
+
+import neuralNet.network.*;
 
 import java.util.*;
 

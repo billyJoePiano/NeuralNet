@@ -1,5 +1,6 @@
 package neuralNet.neuron;
 
+import neuralNet.evolve.*;
 import neuralNet.function.*;
 import neuralNet.network.*;
 import neuralNet.util.*;

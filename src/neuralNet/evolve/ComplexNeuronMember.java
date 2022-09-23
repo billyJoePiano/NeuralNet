@@ -46,11 +46,15 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
         int randTrials = Math.max((int)Math.pow(3, this.getMinInputs()), 81); // 81 = 3^4
         List<SignalProvider> inputs = this.getInputs();
 
+        long start = System.nanoTime();
+
         for (int i = 0; i < randTrials; i++) {
             for (SignalProvider neuron : inputs) neuron.before();
             avg.add(runTrial(i == 0, true, true));
             for (SignalProvider neuron : inputs) neuron.after();
         }
+
+        long end = System.nanoTime();
 
 
         this.clearInputs();
@@ -58,7 +62,7 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
             this.addInput(neuron);
         }
 
-        return new Fitness(avg.getAverage(), this.getInternalDecisionProvider());
+        return new Fitness(avg.getAverage(), end - start, this.getInternalDecisionProvider());
     }
 
     default public void runLimitTrials(int inputIndex, int lastIndex,
@@ -107,11 +111,12 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
     public static class Fitness implements neuralNet.network.Fitness<ComplexNeuronMember, Fitness> {
 
         public final double avgNs;
+        public final long testTime;
         public final short signal;
         public final DecisionProvider<?, ?, ComplexNeuronMember> net;
         public final long generation = NeuralNet.getCurrentGeneration();
 
-        private Fitness(double avgNs, DecisionProvider<?, ?, ComplexNeuronMember> net) {
+        private Fitness(double avgNs, long testTime, DecisionProvider<?, ?, ComplexNeuronMember> net) {
             if (avgNs == 0) this.signal = Short.MAX_VALUE;
             else if (!(avgNs > 0 && Double.isFinite(avgNs))) throw new IllegalArgumentException();
             else this.signal = roundClip(Math.log(avgNs) * NS_LOG_MULTIPLIER + NS_SIGNAL_OFFSET);
@@ -119,6 +124,7 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
             if (net == null) throw new NullPointerException();
 
             this.avgNs = avgNs;
+            this.testTime = testTime;
             this.net = net;
         }
 
@@ -145,6 +151,11 @@ public interface ComplexNeuronMember extends Neuron, Sensable<ComplexNeuronMembe
         @Override
         public long getGeneration() {
             return this.generation;
+        }
+
+        @Override
+        public long getTestTime() {
+            return 0;
         }
     }
 

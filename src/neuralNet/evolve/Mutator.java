@@ -8,5 +8,8 @@ public interface Mutator<//S extends Sensable<S>,
                             P extends DecisionProvider<?, P, ?>> {
                             //C extends DecisionConsumer<S, C, ?>> {
 
-    public List<P> mutate(int count);
+    public List<P> makeMutants();
+    public int mutantsToReturn();
+    public double estimatedMakeMutantsTime();
+    public double estimatedFitnessTestTime();
 }

@@ -1,5 +1,6 @@
 package neuralNet.network;
 
+import neuralNet.evolve.*;
 import neuralNet.neuron.*;
 
 import java.io.*;

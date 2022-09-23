@@ -7,16 +7,20 @@ import neuralNet.test.*;
 import neuralNet.util.*;
 
 import java.io.*;
+import java.nio.file.*;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
 import java.util.function.*;
+import java.util.stream.*;
 
 import static neuralNet.util.Util.*;
 
 public class EvolutionaryEngine {
+    public static final String SAVE_DIR = "../nnts/";
+
     public final String filename;
-    public final MutatorFactory<BoardNet> mutatorFactory;
+    public final MutatorFactory<BoardNet, BoardInterface> mutatorFactory;
 
     private int generations = 2048;
     private int netsPerGeneration = 32;
@@ -45,7 +49,7 @@ public class EvolutionaryEngine {
 
     private Set<BoardNet> currentNets = Set.of(this.edgeNet, this.randNet);
     private Set<BoardNet> fittest;
-    private final Var<Iterator<BoardNet>> currentIterator = new Var<>();
+    private final Var<Iterator<Task>> currentIterator = new Var<>(Collections.emptyIterator());
     private final Set<Thread> threadsIdle = new HashSet<>();
     private TreeSet<BoardInterface.BoardNetFitness> fitnesses;
     private final NetTracker<BoardNet, BoardInterface.BoardNetFitness> netTracker = new NetTracker<>(keepEdgeAndRand);
@@ -53,7 +57,7 @@ public class EvolutionaryEngine {
     public final GenerationHeaderPrintStream System_out, errGen;
     public final TeePrintStream System_err, System_all;
 
-    public EvolutionaryEngine(MutatorFactory<BoardNet> mutatorFactory) {
+    public EvolutionaryEngine(MutatorFactory<BoardNet, BoardInterface> mutatorFactory) {
         this.mutatorFactory = mutatorFactory;
         this.filename = mutatorFactory.getClass().getSimpleName() + " "
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH_mm_ss"));
@@ -130,7 +134,6 @@ public class EvolutionaryEngine {
                 }
 
                 long edgeRating = Math.round(edgeGenRatings.stream().map(l -> (double)l).reduce(0.0, Double::sum) / edgeGenRatings.size());
-
                 long randRating = Math.round(randGenRatings.stream().map(l -> (double)l).reduce(0.0, Double::sum) / randGenRatings.size());
 
                 tracker.setGenRating(this.edgeNet, edgeRating);
@@ -191,10 +194,8 @@ public class EvolutionaryEngine {
         // let the work threads do it on the first iteration
         // so the error message from AffinityLock library is not under the genHeader
 
-        currentNets = makeMutations();
-        fitnesses = new TreeSet<>();
-
-        dispatchWorkerThreads(gen);
+        this.fitnesses = new TreeSet<>();
+        makeMutations(notFirstIteration);
 
         if (notFirstIteration) processLegacies(gen);
         while (runRound()) { }
@@ -203,51 +204,136 @@ public class EvolutionaryEngine {
 
         fittest = netTracker.addFittest(fitnesses, this.reproduceBest);
         checkForRandNets();
+
+        this.mutatorFactory.newFitnessResults(this.fitnesses.stream()
+                .filter(fitness -> netTracker.contains(fitness.getDecisionProvider())
+                                    || fittest.contains(fitness.getDecisionProvider()))
+                .collect(Collectors.toList()));
     }
 
-    private Set<BoardNet> makeMutations() {
-        Set<BoardNet> newGen = new LinkedHashSet<>(this.netsPerGeneration + netTracker.size());
-        newGen.addAll(fittest);
+    private void makeMutations(boolean notFirstIteration) {
+        Var<Map<BoardNet, Double>> newGen = new Var<>(new LinkedHashMap<>(this.netsPerGeneration + netTracker.size()));
 
-        int[] counts = MutatorFactory.calcCounts(fittest.size(), this.netsPerGeneration - fittest.size());
-        Collection<? extends Mutator<? extends BoardNet>> mutators = mutatorFactory.makeMutators(fittest);
+        int count = this.netsPerGeneration - fittest.size();
+        Collection<? extends Mutator<? extends BoardNet>> mutators
+                = mutatorFactory.makeMutators(count, this.fittest, this.netTracker.getFitnesses());
+
+        if (notFirstIteration) {
+            for (BoardNet net : this.fittest) {
+                newGen.value.put(net, this.mutatorFactory.estimatedFitnessTestTime(net));
+            }
+
+        } else {
+            for (BoardNet net : this.fittest) {
+                newGen.value.put(net, 0.0);
+            }
+        }
+
+        List<Task> tasks = new ArrayList<>(mutators.size());
+        Var.Int mutatorsFinished = new Var.Int();
 
         int n = 0;
         for (Mutator<? extends BoardNet> mutator : mutators) {
-            int count = counts[n++];
-            if (count == 0) break;
-            newGen.addAll(mutator.mutate(count));
+            Task task = new Task(mutator.estimatedMakeMutantsTime(), worker -> {
+                try {
+                    worker.makeMutations(mutator, newGen);
+
+                } finally {
+                    synchronized (mutatorsFinished) {
+                        mutatorsFinished.value++;
+                        if (mutatorsFinished.value >= tasks.size()) mutatorsFinished.notifyAll();
+                    }
+                }
+            });
+            tasks.add(task);
         }
 
-        return newGen;
+        this.addTasks(tasks);
+
+        while (runRound()) { }
+
+        synchronized (mutatorsFinished) {
+            if (mutatorsFinished.value >= tasks.size()) {
+                this.addFitnessTestTasks(newGen.value);
+                this.currentNets = new LinkedHashSet<>(newGen.value.keySet());
+                System_err_orig.println("Mutators finished together");
+                return;
+            }
+        }
+
+        System_err_orig.println("Mutators finished asynchronously");
+
+        Map<BoardNet, Double> batch1;
+        synchronized (newGen) {
+            batch1 = newGen.value;
+            newGen.value = new LinkedHashMap<>(this.netsPerGeneration + netTracker.size() - batch1.size());
+        }
+
+        this.addFitnessTestTasks(batch1);
+        this.currentNets = new LinkedHashSet<>(batch1.keySet());
+
+        while (true) {
+            synchronized (mutatorsFinished) {
+                if (mutatorsFinished.value >= tasks.size()) break;
+
+                try {
+                    mutatorsFinished.wait();
+
+                } catch (InterruptedException e) {
+                    if (this.exit) return;
+                    e.printStackTrace(System_err);
+                }
+            }
+        }
+
+        this.addFitnessTestTasks(newGen.value);
+        this.currentNets.addAll(newGen.value.keySet());
     }
 
-    // only call with on a lock on currentIterator
-    private void dispatchWorkerThreads(long gen) {
+    private void addTasks(Collection<Task> tasks) {
         synchronized (currentIterator) {
-            currentIterator.value = currentNets.iterator();
+            TreeSet<Task> sorted = new TreeSet<>(tasks);
+            while (currentIterator.value.hasNext()) {
+                sorted.add(currentIterator.value.next());
+            }
+            currentIterator.value = sorted.iterator();
             currentIterator.notifyAll();
         }
     }
 
-    private final BoardInterface mainsBoard = new BoardInterface();
+    private void addFitnessTestTasks(Map<BoardNet, Double> nets) {
+        List<Task> tasks = new ArrayList<>(nets.size());
+        for (Map.Entry<BoardNet, Double> entry : nets.entrySet()) {
+            BoardNet net = entry.getKey();
+            tasks.add(new Task(entry.getValue(), worker -> worker.runFitnessTest(net)));
+        }
+
+        this.addTasks(tasks);
+    }
+
+    private void addFitnessTestTasks(Set<BoardNet> legacyNets) {
+        List<Task> tasks = new ArrayList<>(legacyNets.size());
+        for (BoardNet net : legacyNets) {
+            tasks.add(new Task(this.mutatorFactory.estimatedFitnessTestTime(net), worker -> worker.runFitnessTest(net)));
+        }
+
+        this.addTasks(tasks);
+    }
+
+    private final WorkerThread mainsWorker = new WorkerThread();
 
     private boolean runRound() {
         if (this.exit) return false;
-        BoardNet net;
+        Task task;
         synchronized (currentIterator) {
             if (this.exit || !currentIterator.value.hasNext()) return false;
-            net = currentIterator.value.next();;
+            task = currentIterator.value.next();
             currentIterator.notifyAll();
         }
 
-        if (net.generation == NeuralNet.getCurrentGeneration()) net.traceNeuronsSet();
-        BoardInterface.BoardNetFitness fitness = mainsBoard.testFitness(net, null);
-        System_out.println(fitness + "\n");
-        synchronized (threadsIdle) {
-            fitnesses.add(fitness);
-        }
+        task.task.accept(this.mainsWorker);
         return true;
+
     }
 
     private void waitForWorkerThreads() {
@@ -301,39 +387,9 @@ public class EvolutionaryEngine {
         }
 
 
-        if (legaciesToCheck.size() == 0) return;
+        if (legaciesToCheck.size() != 0) this.addFitnessTestTasks(legaciesToCheck);
 
-
-        //wait for the currentNets iterator to finish then swap out for the legaciesToCheck iterator.
-        // The swapping out task is mostly waiting, so this can be delegated to a small extra thread
-        // while the main thread focuses on filterHashes()
-        Thread iteratorSwapper = new Thread(() -> {
-            if (this.exit) return;
-            synchronized (currentIterator) {
-                while (currentIterator.value.hasNext()) {
-                    if (this.exit) return;
-                    try {
-                        currentIterator.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace(System_err);
-                    }
-                }
-                currentIterator.value = legaciesToCheck.iterator();
-                currentIterator.notifyAll();
-            }
-        });
-
-        iteratorSwapper.start();
-
-        while (iteratorSwapper.isAlive()) {
-            if (this.exit) return;
-            if (!runRound()) {
-                try { iteratorSwapper.join(1000); }
-                catch (InterruptedException e) { e.printStackTrace(System_err); }
-            }
-        }
-
-        currentNets.addAll(legaciesToCheck); //wait till after filterHashes is done AND the currentNets iterator
+        this.currentNets.addAll(legaciesToCheck); //wait till after filterHashes is done AND the currentNets iterator
         // is finished so we don't get a ConcurrentModificationException
     }
 
@@ -387,6 +443,34 @@ public class EvolutionaryEngine {
         }
     }
 
+    private class Task implements Comparable<Task> {
+        private final double expectedTime;
+        private final Consumer<WorkerThread> task;
+
+        private Task(double expectedTime, Consumer<WorkerThread> task) {
+            this.expectedTime = expectedTime;
+            this.task = task;
+        }
+
+        public int compareTo(Task other) {
+            if (other == this) return 0;
+            else if (other == null) throw new NullPointerException();
+            if (this.expectedTime != other.expectedTime) {
+                return Double.compare(other.expectedTime, this.expectedTime);
+            }
+
+            if (this.hashCode() != other.hashCode()) {
+                return Integer.compare(this.hashCode(), other.hashCode());
+            }
+
+            if (this.task.hashCode() != other.task.hashCode()) {
+                return Integer.compare(this.task.hashCode(), other.task.hashCode());
+            }
+
+            throw new RuntimeException("Could not resolve comparison of two distinct Task instances");
+        }
+    }
+
     private class WorkerThread extends Thread {
 
         private BoardInterface board = new BoardInterface();
@@ -417,28 +501,17 @@ public class EvolutionaryEngine {
         }
 
         private void runWithAffinity() {
-            BoardNet net = getNext();
-            while (net != null) {
-                if (net.generation == NeuralNet.getCurrentGeneration()) {
-                    net.traceNeuronsSet();
-                    long start = System.nanoTime();
-                    long hash = net.getNeuralHash();
-                    long end = System.nanoTime();
-                    if (end - start >= EvolutionaryEngine.this.slowHashCalculationNs) {
-                        System_err.println("SLOW HASH (" + ((double) (end - start) / BILLION) + "seconds) : " + NeuralHash.toHex(hash));
-                        synchronized (netTracker) {
-                            netTracker.addToSpecialNets("Slow Hashes", net);
-                        }
-                    }
-                }
-                BoardInterface.BoardNetFitness fitness = board.testFitness(net, null);
-                System_out.println(fitness + "\n");
-                net = addResult(fitness);
+            Task task;
+            while(true) {
+                task = getNext();
+
+                if (task == null) break;
+                else task.task.accept(this);
             }
         }
 
 
-        private BoardNet getNext() {
+        private Task getNext() {
             Thread current = Thread.currentThread(); //should be this
             assert current == this;
 
@@ -476,12 +549,40 @@ public class EvolutionaryEngine {
             }
         }
 
-        private BoardNet addResult(BoardInterface.BoardNetFitness fitness) {
+        private void traceNeuronsAndCalcHash(BoardNet net) {
+            net.traceNeuronsSet();
+            long start = System.nanoTime();
+            long hash = net.getNeuralHash();
+            long end = System.nanoTime();
+            if (end - start >= EvolutionaryEngine.this.slowHashCalculationNs) {
+                System_err.println("SLOW HASH (" + ((double) (end - start) / BILLION) + "seconds) : " + NeuralHash.toHex(hash));
+                synchronized (netTracker) {
+                    netTracker.addToSpecialNets("Slow Hashes", net);
+                }
+            }
+        }
+
+        private void runFitnessTest(BoardNet net) {
+            BoardInterface.BoardNetFitness fitness = this.board.testFitness(net, null);
+            System_out.println(fitness + "\n");
+
             synchronized (threadsIdle) {
                 fitnesses.add(fitness);
             }
+        }
 
-            return getNext();
+        private void makeMutations(Mutator<? extends BoardNet> mutator,
+                                   Var<Map<BoardNet, Double>> newGen) {
+
+            Double testTime = mutator.estimatedFitnessTestTime();
+            List<? extends BoardNet> nets = mutator.makeMutants();
+
+            for (BoardNet net : nets) {
+                this.traceNeuronsAndCalcHash(net);
+                synchronized (newGen) {
+                    newGen.value.put(net, testTime);
+                }
+            }
         }
     }
 
@@ -660,10 +761,10 @@ public class EvolutionaryEngine {
 
     private void saveNetsTracker(String filename, BufferedReader reader) {
 
-        while (true) try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename))) {
+        while (true) try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(SAVE_DIR + filename))) {
             System_all.println("SAVING AS " + filename);
             out.writeObject(netTracker);
-            return;
+            break;
 
         } catch (IOException e) {
             System_err.println("Exception while serializing/saving netsTracker");
@@ -684,6 +785,22 @@ public class EvolutionaryEngine {
                 return;
             }
         }
+
+        System_out.print("Successfully wrote file to archive. Copying to working directory... ");
+
+        try {
+            Files.copy(new File(SAVE_DIR + filename).toPath(),
+                        new File(filename).toPath(),
+                        StandardCopyOption.COPY_ATTRIBUTES);
+
+        } catch (IOException e) {
+            System_out.println();
+            System_err.println("Exception while copying output file to working directory");
+            e.printStackTrace(System_err);
+            return;
+        }
+
+        System_out.println("success");
     }
 
     public int getGenerations() {

@@ -48,15 +48,17 @@ public class BoardInterface extends Board implements
             AccumulatedAverage timePerMove = new AccumulatedAverage(); //in milliseconds
 
             long quitAfter = System.currentTimeMillis() + MAX_MS_TRIALS;
+            long startTest = System.nanoTime();
+
             do {
                 boolean cutShort = false;
                 this.reset();
                 boardNet.reset();
                 while (this.isActive()) {
-                    long start = System.nanoTime();
+                    long startRound = System.nanoTime();
                     this.runRound(boardNet);
-                    long end = System.nanoTime();
-                    double ms = (end - start) / MILLION;
+                    long endRound = System.nanoTime();
+                    double ms = (endRound - startRound) / MILLION;
                     timePerMove.add(ms);
                     if (ms > MS_CHECK_THRESHOLD && System.currentTimeMillis() > quitAfter) {
                         cutShort = true;
@@ -77,6 +79,8 @@ public class BoardInterface extends Board implements
 
             } while(++gamesRun < GAMES_PER_TEST && System.currentTimeMillis() <= quitAfter);
 
+            long endTest = System.nanoTime();
+
             arthMean /= gamesRun;
             geoMean = Math.exp(geoMean / gamesRun);
 
@@ -88,7 +92,7 @@ public class BoardInterface extends Board implements
             else median = (double)(scores[medIndex - 1] + scores[medIndex]) / 2;
 
             return new BoardNetFitness((BoardNet)boardNet, scores[startIndex], scores[GAMES_PER_TEST - 1],
-                    arthMean, geoMean, median, timePerMove.getAverage());
+                    arthMean, geoMean, median, timePerMove.getAverage(), endTest - startTest);
         //}
     }
 
@@ -120,11 +124,12 @@ public class BoardInterface extends Board implements
         public final double composite; // doesn't account for timePerMove
         public final double timePerMove;
         public final double weightedScore;
+        public final long testTime;
 
         public final long generation = NeuralNet.getCurrentGeneration();
 
-        private BoardNetFitness(BoardNet net, final int min, final int max, final double arthMean, final double geoMean, final double median,
-                                final double timePerMove) {
+        private BoardNetFitness(final BoardNet net, final int min, final int max, final double arthMean, final double geoMean, final double median,
+                                final double timePerMove, final long testTime) {
             this.net = net;
 
             this.min = min;
@@ -134,6 +139,8 @@ public class BoardInterface extends Board implements
             this.arthMean = arthMean;
             this.geoMean = geoMean;
             this.median = median;
+
+            this.testTime = testTime;
 
             double minMetric = Util.min(arthMean, geoMean, median, minMaxGeo);
             double composite = Math.sqrt(Math.sqrt(arthMean * geoMean) * Math.sqrt(median * this.minMaxGeo)); //geomean of the four score metrics
@@ -197,12 +204,18 @@ public class BoardInterface extends Board implements
             return this.generation;
         }
 
+        @Override
+        public long getTestTime() {
+            return this.testTime;
+        }
+
         public String toString() {
             return this.getClass().getSimpleName() + " ( " + this.net + " )"
                     + "\n\t\t\t\tMean: " + this.arthMean
                     + "\t\tGeoMean: " + this.geoMean
                     + "\t\tMedian: " + this.median
                     + "\t\tMinMaxGeo: " + this.minMaxGeo
+                    + "\t\tTest Time (ms): " + ((double)this.testTime / MILLION)
                     + "\n\t\t\t\tComposite: " + this.composite
                     + "\t\tTime Per Move: " + this.timePerMove
                     + "\t\tWeighted Score: " + this.weightedScore;

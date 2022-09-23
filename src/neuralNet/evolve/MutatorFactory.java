@@ -5,11 +5,15 @@ import neuralNet.network.*;
 import java.util.*;
 
 public interface MutatorFactory<//S extends Sensable<S>,
-        P extends DecisionProvider<?, P, ?>> {
-        //C extends DecisionConsumer<S, C, ?>> {
+        P extends DecisionProvider<?, P, C>,
+        C extends DecisionConsumer<?, C, ?>> {
 
-    public Collection<? extends Mutator<? extends P>> makeMutators(Collection<? extends P> forProviders);
+    public void newFitnessResults(Collection<? extends Fitness<C, ?>> fitnesses);
+    public Double estimatedFitnessTestTime(P establishedProvider);
 
+    public Collection<? extends Mutator<? extends P>> makeMutators(int totalMutants,
+                                                                   Collection<? extends P> parents,
+                                                                   SortedSet<? extends Fitness<C, ?>> fitnesses);
 
 
     public static int[] calcCounts(int fittestCount, int netsToMake) {

@@ -1,4 +1,4 @@
-package neuralNet.network;
+package neuralNet.evolve;
 
 import java.io.*;
 import java.util.*;
@@ -6,29 +6,46 @@ import java.util.function.*;
 
 public interface Lineage extends Iterable<Long>, Serializable {
 
-    default public double getKinshipScore(Lineage otherLineage) {
-        synchronized (this) {
-            KinshipRecord record = KinshipResultsCache.INSTANCE.getRecord(this, otherLineage);
-            if (record != null) return record.kinshipScore;
-
-            return KinshipResultsCache.INSTANCE.record(this, otherLineage, this.cachingRecursiveSearch(otherLineage));
-        }
-    }
-
     public long getHash();
-
     public double lineageContains(long hash);
     public double getGenerations();
     public KinshipTracker recursiveSearch(Lineage otherLineage);
 
+    default public double getKinshipScore(Lineage otherLineage) {
+        synchronized (this) {
+            KinshipRecord record = KinshipResultsCache.getRecord(this, otherLineage);
+            if (record != null) return record.kinshipScore;
+
+            return KinshipResultsCache.record(this, otherLineage, this.cachingRecursiveSearch(otherLineage));
+        }
+    }
+
     default public KinshipTracker cachingRecursiveSearch(Lineage otherLineage) {
         synchronized (this) {
-            KinshipRecord record = KinshipResultsCache.INSTANCE.getRecord(this, otherLineage);
+            KinshipRecord record = KinshipResultsCache.getRecord(this, otherLineage);
             if (record != null) return record.makeTracker();
             KinshipTracker tracker = recursiveSearch(otherLineage);
-            KinshipResultsCache.INSTANCE.record(this, otherLineage, tracker);
+            KinshipResultsCache.record(this, otherLineage, tracker);
             return tracker;
         }
+    }
+
+    default public long[] getAncestors() {
+        LinkedList<Long> list = new LinkedList<>();
+
+        boolean first = true; //omit own hash
+        for (Long ancestor : this) {
+            if (first) first = false;
+            else list.add(ancestor);
+        }
+
+        long[] arr = new long[list.size()];
+        int i = 0;
+        for (Long ancestor : list) {
+            arr[i++] = ancestor;
+        }
+
+        return arr;
     }
 
     public class KinshipTracker {
@@ -59,32 +76,15 @@ public interface Lineage extends Iterable<Long>, Serializable {
         }
     }
 
-    public static KinshipTracker trackerFromRecord(Lineage lineage, Lineage otherLineage) {
-        return KinshipResultsCache.INSTANCE.trackerFromRecord(lineage, otherLineage);
-    }
+    public enum KinshipResultsCache {
+        ;
 
-    public static KinshipRecord getRecord(Lineage lineage, Lineage otherLineage) {
-        return KinshipResultsCache.INSTANCE.getRecord(lineage, otherLineage);
-    }
+        private static final Function<Lineage, WeakHashMap<Lineage, KinshipRecord>> computeIfAbsent = l -> new WeakHashMap<>();
 
-    public enum KinshipResultsCache implements Function<Lineage, WeakHashMap<Lineage, KinshipRecord>> {
-        INSTANCE;
-
-        private final WeakHashMap<Lineage, WeakHashMap<Lineage, KinshipRecord>>
+        private static final WeakHashMap<Lineage, WeakHashMap<Lineage, KinshipRecord>>
                 trackerRecords = new WeakHashMap<>();
 
-        /**
-         * Used by trackerRecords.computeIfAbsent
-         *
-         * @param lineage
-         * @return
-         */
-        @Override
-        public WeakHashMap<Lineage, KinshipRecord> apply(Lineage lineage) {
-            return new WeakHashMap<>();
-        }
-
-        private KinshipTracker trackerFromRecord(Lineage lineage, Lineage otherLineage) {
+        private static KinshipTracker trackerFromRecord(Lineage lineage, Lineage otherLineage) {
 
             Map<Lineage, KinshipRecord> recordMap = trackerRecords.get(lineage);
             if (recordMap == null) return null;
@@ -94,8 +94,8 @@ public interface Lineage extends Iterable<Long>, Serializable {
             else return record.makeTracker();
         }
 
-        private double record(Lineage lineage, Lineage otherLineage, KinshipTracker tracker) {
-            Map<Lineage, KinshipRecord> recordMap = trackerRecords.computeIfAbsent(lineage, this);
+        private static double record(Lineage lineage, Lineage otherLineage, KinshipTracker tracker) {
+            Map<Lineage, KinshipRecord> recordMap = trackerRecords.computeIfAbsent(lineage, computeIfAbsent);
             if (recordMap.containsKey(otherLineage)) throw new IllegalStateException();
 
             double kinshipScore = tracker.getKinshipScore(otherLineage.getGenerations());
@@ -104,7 +104,7 @@ public interface Lineage extends Iterable<Long>, Serializable {
             return kinshipScore;
         }
 
-        private KinshipRecord getRecord(Lineage lineage, Lineage otherLineage) {
+        private static KinshipRecord getRecord(Lineage lineage, Lineage otherLineage) {
             Map<Lineage, KinshipRecord> recordMap = trackerRecords.get(lineage);
             if (recordMap == null) return null;
             else return recordMap.get(otherLineage);

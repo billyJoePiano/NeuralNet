@@ -22,7 +22,7 @@ public class Hybridizer<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
 
     @Override
-    public List<N> mutate(int count) {
+    public List<N> makeMutants() {
         int decisionNodes = this.parent1.getDecisionNodes().size();
         if (decisionNodes != this.parent2.getDecisionNodes().size()) throw new IllegalStateException();
         if (this.record.madeHybrids.size() >= Util.pow2(decisionNodes) - 2) throw new IllegalStateException();
@@ -30,6 +30,21 @@ public class Hybridizer<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
         if (this.record.equivalentProviders.size() == 0) findEquivalentProviders();
 
         return null;
+    }
+
+    @Override
+    public int mutantsToReturn() {
+        return 0;  //TODO
+    }
+
+    @Override
+    public double estimatedMakeMutantsTime() {
+        return 0;  //TODO
+    }
+
+    @Override
+    public double estimatedFitnessTestTime() {
+        return 0; //TODO
     }
 
     public void findEquivalentProviders() {

@@ -15,31 +15,45 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
     public static final int MAX_NEW_CONSUMERS = 10;
     public static final int MAX_NEW_NEURONS = 30;
 
-    private N net;
+    public final N net;
+    public final int count;
+    public final double estimatedTestTime;
+
     private Set<SignalConsumer> needsRepopulation;
     private List<ComplexNeuronMember> complexNeurons;
 
     //private final Map<Set<SignalProvider>, N> clonedNets;
 
-    public AddNeurons() { }
-
-    public AddNeurons(N net) {
+    public AddNeurons(N net, int count, double estimatedTestTime) {
+        if (count < 1 || !Double.isFinite(estimatedTestTime)) throw new IllegalArgumentException();
+        if (net == null) throw new NullPointerException();
         this.net = net;
+        this.count = count;
+        this.estimatedTestTime = estimatedTestTime;
     }
 
     public N getNet() {
         return this.net;
     }
 
-    public void setNet(N decisionProvider) {
-        if (this.net == null) this.net = decisionProvider;
-        else if (this.net != decisionProvider) throw new UnsupportedOperationException();
+    @Override
+    public int mutantsToReturn() {
+        return this.count;
     }
 
-    public List<N> mutate(int count) {
-        if (count < 1) {
-            throw new IllegalArgumentException();
-        }
+    @Override
+    public double estimatedMakeMutantsTime() {
+        return this.count * this.net.getProviders().size();
+    }
+
+    @Override
+    public double estimatedFitnessTestTime() {
+        return this.estimatedTestTime;
+    }
+
+
+    public List<N> makeMutants() {
+        int count = this.count;
 
         this.complexNeurons = new LinkedList<>();
         for (SignalProvider neuron : this.net.getProviders()) {
@@ -62,7 +76,7 @@ public class AddNeurons<N extends NeuralNet<?, N, ?>> implements Mutator<N> {
 
         N clone = this.net.clone();
         List<SignalProvider> allProviders = new ArrayList<>(clone.getProviders().size() + count);
-        List<SignalConsumer> allConsumers = new ArrayList<>(clone.getDecisionNodes().size() + allProviders.size() + count);
+        List<SignalConsumer> allConsumers = new ArrayList<>(clone.getConsumers().size() + count);
 
         // add existing neurons to the lists
         allProviders.addAll(clone.getProviders());

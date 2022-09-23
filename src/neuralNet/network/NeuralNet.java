@@ -1,5 +1,9 @@
 package neuralNet.network;
 
+import neuralNet.evolve.RootLineage;
+import neuralNet.evolve.SingleLineage;
+import neuralNet.evolve.DualLineage;
+import neuralNet.evolve.MultiLineage;
 import neuralNet.evolve.*;
 import neuralNet.neuron.*;
 import neuralNet.util.*;
@@ -34,14 +38,15 @@ public abstract class NeuralNet<S extends Sensable<S>,
 
     private static final Generation CURRENT = Generation.CURRENT;
 
-    public /*final*/ long generation;
-    //public transient long[] lineage;
+    public final long generation;
 
     private transient Supplier<Lineage> makeLineage;
+    private transient long[] ancestors;
+
     private Lineage lineage = null;
 
-    private /*final*/ SerializableWeakHashSet<SignalProvider> providers;
-    private /*final*/ SerializableWeakHashSet<SignalConsumer> consumers;
+    private final SerializableWeakHashSet<SignalProvider> providers;
+    private final SerializableWeakHashSet<SignalConsumer> consumers;
 
     private SerializableWeakRef<NoOp> noOp;
 
@@ -236,6 +241,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
         }
 
         return this.lineage;
+    }
+
+    public long[] getAncestors() {
+        if (this.ancestors == null) {
+            this.ancestors = this.getLineage().getAncestors();
+        }
+        return this.ancestors;
     }
 
     /**
@@ -779,11 +791,13 @@ public abstract class NeuralNet<S extends Sensable<S>,
     }
 
     public String toString() {
+        long[] ancestors = this.getAncestors();
+
         return this.getClass().getSimpleName()
                 + "(generation: " + this.generation
                 + ", providers: " + this.getProviders().size()
                 + ", consumers: " + this.getConsumers().size()
-                + ", hash: " + NeuralHash.toHex(this.getNeuralHash());
-                //+ ", lineage(" + this.lineage.length + "): " + NeuralHash.toHex(this.lineage) + "  )";
+                + ", hash: " + NeuralHash.toHex(this.getNeuralHash())
+                + ", ancestors(" + ancestors.length + "): " + NeuralHash.toHex(ancestors) + "  )";
     }
 }
