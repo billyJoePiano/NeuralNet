@@ -3,11 +3,11 @@ package neuralNet.evolve;
 import neuralNet.network.*;
 
 import java.util.*;
+import java.util.stream.*;
 
-public class MultiLineage implements Lineage {
+public class MultiLineage<N extends DecisionProvider<?, N, ?>> extends CachingLineage<N> {
     public final double sumWeight;
     private final Map<Lineage, Double> parents;
-    public final long myHash;
 
     public static Map<Lineage, Double> convert(Collection<NeuralNet<?, ?, ?>> parents) {
         Map<Lineage, Double> converted = new HashMap<>();
@@ -25,13 +25,12 @@ public class MultiLineage implements Lineage {
         return converted;
     }
 
-    public MultiLineage(Map<Lineage, Double> parents, long myHash) {
+    private static ProcessedMap process(Map<Lineage, Double> parents) {
         if (parents.size() < 2) throw new IllegalArgumentException();
 
-        this.parents = new LinkedHashMap<>();
-        this.myHash = myHash;
-
+        Map<Lineage, Double> sortedCopy = new LinkedHashMap<>();
         double sumWeight = 0;
+        double generations = 0;
 
         for (Map.Entry<Lineage, Double> entry
                 : parents.entrySet().stream().sorted(Comparator.comparingDouble(Map.Entry::getValue)).toList()) {
@@ -43,42 +42,61 @@ public class MultiLineage implements Lineage {
             if (!(Double.isFinite(weight) && weight > 0)) throw new IllegalArgumentException(weight.toString());
 
             sumWeight += weight;
-            this.parents.put(lineage, weight);
+            generations += lineage.getGenerationsCount() * weight;
+
+            sortedCopy.put(lineage, weight);
         }
 
-        this.sumWeight = sumWeight;
+        return new ProcessedMap(Collections.unmodifiableMap(sortedCopy), generations / sumWeight + 1, sumWeight);
+    }
+
+    private record ProcessedMap(Map<Lineage, Double> parents, double generations, double sumWeight) { }
+
+    public MultiLineage(N net, Map<Lineage, Double> parents) {
+        this(net, process(parents));
+    }
+
+    private MultiLineage(N net, ProcessedMap processed) {
+        super(net, processed.generations);
+
+        this.parents = processed.parents;
+        this.sumWeight = processed.sumWeight;
     }
 
     @Override
-    public KinshipTracker recursiveSearch(Lineage otherLineage) {
-        double generations = 0;
-        double sharedAncestors = 0;
+    protected double searchForSharedAncestors(Lineage other) {
+        double ancestors = 0;
+        for (Map.Entry<Lineage, Double> entry : this.parents.entrySet()) {
+            ancestors += entry.getKey().getSharedAncestors(other) * entry.getValue();
+        }
+        return ancestors / this.sumWeight + other.lineageContains(this.myHash);
+    }
+
+    @Override
+    protected double calcKinshipScore(Lineage other, double myGens, double otherGens, double sharedAncestors) {
+        return Lineage.calcKinshipScore(sharedAncestors, myGens, otherGens);
+    }
+
+    @Override
+    protected Iterator<Long> ancestorsIterator() {
+        return new LineageIterator();
+    }
+
+    @Override
+    protected String toStringNoSelf() {
+        StringBuilder str = new StringBuilder("{");
+
+        boolean first = true;
 
         for (Map.Entry<Lineage, Double> entry : this.parents.entrySet()) {
-            KinshipTracker tracker = entry.getKey().cachingRecursiveSearch(otherLineage);
-            double weight = entry.getValue();
-            generations += tracker.generations * weight;
-            sharedAncestors += tracker.sharedAncestors * weight;
+            if (first) first = false;
+            else str.append(", ");
+
+            str.append('<').append(entry.getValue()).append('>').append(entry.getKey().toString(true));
+            //TODO String.format the weight, for readability (limit sig digits)
         }
 
-        return new KinshipTracker(generations / this.sumWeight, sharedAncestors / this.sumWeight);
-    }
-
-
-    @Override
-    public double getGenerations() {
-        double generations = 0;
-
-        for (Map.Entry<Lineage, Double> entry : this.parents.entrySet()) {
-            generations += entry.getKey().getGenerations() * entry.getValue();
-        }
-
-        return generations / this.sumWeight;
-    }
-
-    @Override
-    public long getHash() {
-        return this.myHash;
+        return str + "}";
     }
 
     @Override
@@ -93,22 +111,19 @@ public class MultiLineage implements Lineage {
         return contains / this.sumWeight;
     }
 
-    @Override
-    public Iterator<Long> iterator() {
-        List<Iterator<Long>> parents = new ArrayList<>(this.parents.size());
-        for (Lineage parent : this.parents.keySet()) {
-            parents.add(parent.iterator());
-        }
+    private class LineageIterator implements Iterator<Long> {
+        private int index = 0;
+        private final List<Iterator<Long>> parents = MultiLineage.this.parents.keySet().stream()
+                                                                .map(Iterable::iterator)
+                                                                .collect(Collectors.toList());
 
-        return new LineageIterator(parents);
-    }
+        private LineageIterator() {
+            for (Iterator<Iterator<Long>> iterator = parents.iterator();
+                    iterator.hasNext();) {
 
-    private class LineageIterator implements Iterator<Long>, Iterable<Long> {
-        private int index = -1;
-        private final List<Iterator<Long>> parents;
-
-        private LineageIterator(List<Iterator<Long>> parents) {
-            this.parents = parents;
+                Iterator<Long> lineageIterator = iterator.next();
+                if (!lineageIterator.hasNext()) iterator.remove();
+            }
         }
 
         @Override
@@ -118,11 +133,7 @@ public class MultiLineage implements Lineage {
 
         @Override
         public Long next() {
-            if (this.index == -1) {
-                this.index = 0;
-                return MultiLineage.this.myHash;
-
-            } else if (this.parents.size() == 0) {
+            if (this.parents.size() == 0) {
                 throw new NoSuchElementException();
             }
 
@@ -138,11 +149,6 @@ public class MultiLineage implements Lineage {
             }
 
             return hash;
-        }
-
-        @Override
-        public Iterator<Long> iterator() {
-            return this;
         }
     }
 }

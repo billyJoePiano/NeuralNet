@@ -452,7 +452,7 @@ public class EvolutionaryEngine {
             this.task = task;
         }
 
-        public int compareTo(Task other) {
+        public int compareTo(Task other) throws CannotResolveComparisonException {
             if (other == this) return 0;
             else if (other == null) throw new NullPointerException();
             if (this.expectedTime != other.expectedTime) {
@@ -467,7 +467,7 @@ public class EvolutionaryEngine {
                 return Integer.compare(this.task.hashCode(), other.task.hashCode());
             }
 
-            throw new RuntimeException("Could not resolve comparison of two distinct Task instances");
+            throw new CannotResolveComparisonException(this, other);
         }
     }
 

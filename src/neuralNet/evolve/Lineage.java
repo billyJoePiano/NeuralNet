@@ -1,115 +1,55 @@
 package neuralNet.evolve;
 
-import java.io.*;
-import java.util.*;
-import java.util.function.*;
+import neuralNet.util.*;
+import neuralNet.util.DualIterable.*;
 
-public interface Lineage extends Iterable<Long>, Serializable {
+import java.io.*;
+
+public interface Lineage extends Iterable<Long>, Comparable<Lineage>, Serializable {
 
     public long getHash();
+    public long getGeneration();
+    public long[] getAncestors();
+    public String toString(boolean includeSelf);
+
     public double lineageContains(long hash);
-    public double getGenerations();
-    public KinshipTracker recursiveSearch(Lineage otherLineage);
+    public double getGenerationsCount();
+    public double getKinshipScore(Lineage otherLineage, FuzzyPredicate<Lineage> filter);
+    public double getKinshipScore(Lineage otherLineage);
 
-    default public double getKinshipScore(Lineage otherLineage) {
-        synchronized (this) {
-            KinshipRecord record = KinshipResultsCache.getRecord(this, otherLineage);
-            if (record != null) return record.kinshipScore;
-
-            return KinshipResultsCache.record(this, otherLineage, this.cachingRecursiveSearch(otherLineage));
-        }
+    public static double calcKinshipScore(double sharedAncestors, double genCount1, double genCount2) {
+        double genCountAvg = (genCount1 + genCount2) / 2;
+        if (genCountAvg >= sharedAncestors) return 1.0;
+        else return sharedAncestors / genCountAvg;
     }
 
-    default public KinshipTracker cachingRecursiveSearch(Lineage otherLineage) {
-        synchronized (this) {
-            KinshipRecord record = KinshipResultsCache.getRecord(this, otherLineage);
-            if (record != null) return record.makeTracker();
-            KinshipTracker tracker = recursiveSearch(otherLineage);
-            KinshipResultsCache.record(this, otherLineage, tracker);
-            return tracker;
-        }
-    }
 
-    default public long[] getAncestors() {
-        LinkedList<Long> list = new LinkedList<>();
+    default public int compareTo(Lineage other) throws CannotResolveComparisonException {
+        if (other == this) return 0;
+        if (other == null) return -1;
 
-        boolean first = true; //omit own hash
-        for (Long ancestor : this) {
-            if (first) first = false;
-            else list.add(ancestor);
-        }
+        long mine = this.getHash(), theirs = other.getHash();
+        if (mine != theirs) return Long.compare(mine, theirs);
 
-        long[] arr = new long[list.size()];
-        int i = 0;
-        for (Long ancestor : list) {
-            arr[i++] = ancestor;
+        for (Pair<Long> pair : new DualIterable<>(this, other)) {
+            Long val1 = pair.value1(), val2 = pair.value2();
+
+            if (val1 != null) {
+                if (val2 == null) return -1;
+
+            } else if (val2 != null) return 1;
+            else break;
+
+            if (!val1.equals(val2)) return Long.compare(val1, val2);
         }
 
-        return arr;
-    }
+        mine = this.getGeneration();
+        theirs = other.getGeneration();
+        if (mine != theirs) return Long.compare(mine, theirs);
 
-    public class KinshipTracker {
-        public double generations;
-        public double sharedAncestors;
+        double myGens = this.getGenerationsCount(), theirGens = other.getGenerationsCount();
+        if (myGens != theirGens) return Double.compare(myGens, theirGens);
 
-        public double getKinshipScore(double otherGenerations) {
-            if (otherGenerations < 1 || this.generations < 1) throw new IllegalStateException();
-
-            double midpointGen = (otherGenerations + this.generations) / 2 - 1; // don't include the current generation
-
-            if (this.sharedAncestors > midpointGen) return 1.0;
-            else if (midpointGen == 0.0) return 0.0;
-            else return this.sharedAncestors / midpointGen;
-        }
-
-        public KinshipTracker() { }
-
-        public KinshipTracker(double generations, double sharedAncestors) {
-            this.generations = generations;
-            this.sharedAncestors = sharedAncestors;
-        }
-    }
-
-    public record KinshipRecord(double kinshipScore, double generations, double sharedAncestors) {
-        public KinshipTracker makeTracker() {
-            return new KinshipTracker(this.generations, this.sharedAncestors);
-        }
-    }
-
-    public enum KinshipResultsCache {
-        ;
-
-        private static final Function<Lineage, WeakHashMap<Lineage, KinshipRecord>> computeIfAbsent = l -> new WeakHashMap<>();
-
-        private static final WeakHashMap<Lineage, WeakHashMap<Lineage, KinshipRecord>>
-                trackerRecords = new WeakHashMap<>();
-
-        private static KinshipTracker trackerFromRecord(Lineage lineage, Lineage otherLineage) {
-
-            Map<Lineage, KinshipRecord> recordMap = trackerRecords.get(lineage);
-            if (recordMap == null) return null;
-
-            KinshipRecord record = recordMap.get(otherLineage);
-            if (record == null) return null;
-            else return record.makeTracker();
-        }
-
-        private static double record(Lineage lineage, Lineage otherLineage, KinshipTracker tracker) {
-            Map<Lineage, KinshipRecord> recordMap = trackerRecords.computeIfAbsent(lineage, computeIfAbsent);
-            if (recordMap.containsKey(otherLineage)) throw new IllegalStateException();
-
-            double kinshipScore = tracker.getKinshipScore(otherLineage.getGenerations());
-            recordMap.put(otherLineage, new KinshipRecord(kinshipScore, tracker.generations, tracker.sharedAncestors));
-
-            return kinshipScore;
-        }
-
-        private static KinshipRecord getRecord(Lineage lineage, Lineage otherLineage) {
-            Map<Lineage, KinshipRecord> recordMap = trackerRecords.get(lineage);
-            if (recordMap == null) return null;
-            else return recordMap.get(otherLineage);
-        }
-
-
+        throw new CannotResolveComparisonException(this, other);
     }
 }
